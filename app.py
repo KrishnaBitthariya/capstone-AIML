@@ -243,6 +243,43 @@ def about():
     return render_template('about.html')
 
 
+@app.route('/learn')
+def learn():
+    return render_template('learn.html')
+
+
+@app.route('/api/trigger', methods=['POST'])
+def trigger_attack():
+    """Force a specific attack type and return classification result."""
+    data = request.get_json() or {}
+    attack_type = data.get('attack_type', 'DoS')
+    if attack_type not in ['Normal', 'DoS', 'PortScan', 'BruteForce']:
+        return jsonify({'error': 'Invalid attack type'}), 400
+
+    pkt, true_label, src_ip, dst_ip, port, proto = make_fake_packet(attack_type=attack_type)
+    ai_label, ai_conf, ai_proba, rule_label = classify_packet(pkt)
+
+    return jsonify({
+        'timestamp': time.strftime('%H:%M:%S'),
+        'src_ip': src_ip,
+        'dst_ip': dst_ip,
+        'port': port,
+        'protocol': proto,
+        'features': pkt,
+        'true_label': true_label,
+        'ai': {
+            'label': ai_label,
+            'confidence': ai_conf,
+            'probabilities': ai_proba,
+            'correct': ai_label == true_label
+        },
+        'rule': {
+            'label': rule_label,
+            'correct': rule_label == true_label
+        }
+    })
+
+
 @app.route('/api/dataset-sample')
 def dataset_sample():
     """Return EDA stats + sample rows for the about page."""

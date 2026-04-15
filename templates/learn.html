@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learn — NIDS Educational Guide</title>
+  <meta name="description" content="Learn how AI and rule-based intrusion detection systems work, what network attacks do, and how to prevent them.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #f1f5f9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --primary:   #1a56db;
+      --primary-lt:#eff6ff;
+      --text:      #0f172a;
+      --text-md:   #334155;
+      --text-sm:   #64748b;
+      --green:     #059669;
+      --green-lt:  #f0fdf4;
+      --red:       #dc2626;
+      --red-lt:    #fef2f2;
+      --amber:     #d97706;
+      --amber-lt:  #fffbeb;
+      --purple:    #7c3aed;
+      --purple-lt: #f5f3ff;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; line-height: 1.7; }
+
+    /* ── HEADER ──────────────────────────── */
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top:0; z-index:100; box-shadow: var(--shadow-sm);
+    }
+
+    .logo-wrap { display:flex; align-items:center; gap:14px; text-decoration:none; }
+    .logo-mark { background:var(--primary); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:0.78rem; font-weight:600; letter-spacing:1.5px; padding:5px 12px; border-radius:5px; }
+    .logo-text .logo-name { font-size:0.88rem; font-weight:700; color:var(--text); line-height:1.2; }
+    .logo-text .logo-sub  { font-size:0.68rem; color:var(--text-sm); }
+
+    .nav-right { display:flex; align-items:center; gap:4px; }
+
+    .nav-link {
+      font-size:0.78rem; font-weight:500; color:var(--text-sm);
+      text-decoration:none; padding:7px 14px;
+      border-radius:6px; border:1px solid transparent;
+      transition:all 0.15s; white-space:nowrap;
+    }
+
+    .nav-link:hover  { border-color:var(--border); color:var(--text-md); background:var(--bg); }
+    .nav-link.active { border-color:var(--primary); color:var(--primary); background:var(--primary-lt); font-weight:600; }
+
+    .nav-divider { width:1px; height:22px; background:var(--border); margin:0 8px; }
+    .status-ind  { display:flex; align-items:center; gap:6px; padding:5px 12px; background:var(--green-lt); border:1px solid #bbf7d0; border-radius:20px; }
+    .status-dot  { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-txt  { font-size:0.68rem; font-weight:600; color:var(--green); letter-spacing:0.5px; text-transform:uppercase; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1a56db 60%, #2563eb 100%);
+      color: #fff; padding: 60px 22px 48px;
+      text-align: center;
+    }
+
+    .hero-tag {
+      display: inline-block; background: rgba(255,255,255,0.15);
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 1.2px;
+      text-transform: uppercase; padding: 4px 14px; border-radius: 20px;
+      margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .hero h1 { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; margin-bottom: 14px; }
+    .hero p   { font-size: 1rem; color: rgba(255,255,255,0.8); max-width: 640px; margin: 0 auto 30px; line-height: 1.7; }
+
+    .hero-chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .chip {
+      font-size:0.74rem; font-weight:500; padding:5px 14px;
+      border-radius:20px; background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.2); color:#fff;
+    }
+
+    /* ── TOC NAV ── */
+    .toc-bar {
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:0 22px; overflow-x:auto; display:flex; gap:0;
+      position:sticky; top:60px; z-index:90;
+    }
+
+    .toc-link {
+      font-size:0.78rem; font-weight:500; color:var(--text-sm);
+      text-decoration:none; padding:12px 16px; border-bottom:2px solid transparent;
+      white-space:nowrap; transition:all 0.15s;
+    }
+
+    .toc-link:hover, .toc-link.active { color:var(--primary); border-color:var(--primary); }
+
+    /* ── LAYOUT ── */
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 22px 60px; }
+
+    /* ── SECTION ── */
+    .section { margin-bottom: 48px; }
+
+    .section-anchor { display:block; height:72px; margin-top:-72px; visibility:hidden; }
+
+    .sec-label {
+      font-size:0.65rem; font-weight:700; letter-spacing:1.2px;
+      text-transform:uppercase; color:var(--primary); margin-bottom:6px;
+    }
+
+    .sec-title { font-size:1.6rem; font-weight:800; color:var(--text); margin-bottom:10px; letter-spacing:-0.3px; }
+    .sec-lead  { font-size:0.95rem; color:var(--text-sm); margin-bottom:24px; line-height:1.7; }
+
+    /* ── CARDS ── */
+    .cards     { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; }
+    .card      { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:22px; box-shadow:var(--shadow-sm); }
+    .card-icon { font-size:1.5rem; margin-bottom:12px; }
+    .card-head { font-size:0.88rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+    .card-body { font-size:0.83rem; color:var(--text-sm); line-height:1.7; }
+
+    /* ── HOW IT WORKS ── */
+    .steps { display:flex; flex-direction:column; gap:14px; }
+
+    .step {
+      display:flex; gap:16px; align-items:flex-start;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; padding:18px 18px; box-shadow:var(--shadow-sm);
+    }
+
+    .step-num {
+      width:32px; height:32px; border-radius:50%; flex-shrink:0;
+      background:var(--primary); color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      font-size:0.8rem; font-weight:700;
+    }
+
+    .step-body h4 { font-size:0.9rem; font-weight:700; color:var(--text); margin-bottom:4px; }
+    .step-body p  { font-size:0.82rem; color:var(--text-sm); line-height:1.6; }
+
+    /* ── COMPARE TABLE ── */
+    .compare-table {
+      width:100%; border-collapse:collapse;
+      background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+      box-shadow:var(--shadow-sm);
+    }
+
+    .compare-table th {
+      padding:12px 16px; text-align:left;
+      font-size:0.75rem; font-weight:700; letter-spacing:0.6px; text-transform:uppercase;
+      background:#f8fafc; border-bottom:1px solid var(--border);
+    }
+
+    .compare-table td {
+      padding:11px 16px; font-size:0.84rem; border-bottom:1px solid var(--border);
+      vertical-align:top; color:var(--text-md);
+    }
+
+    .compare-table tr:last-child td { border-bottom:none; }
+    .compare-table td:first-child   { color:var(--text-sm); font-weight:500; width:200px; }
+
+    .th-ai   { color:var(--primary); }
+    .th-rule { color:var(--amber); }
+
+    .good { color:var(--green); font-weight:600; }
+    .bad  { color:var(--red);   font-weight:600; }
+
+    /* ── ATTACK CARDS ── */
+    .attack-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
+
+    .atk-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:10px; overflow:hidden; box-shadow:var(--shadow-sm);
+    }
+
+    .atk-card-head {
+      padding:16px 18px;
+      display:flex; align-items:center; gap:12px;
+    }
+
+    .atk-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+    .atk-dot.dos        { background:var(--red); }
+    .atk-dot.portscan   { background:var(--amber); }
+    .atk-dot.bruteforce { background:var(--purple); }
+
+    .atk-card-head h3 { font-size:0.95rem; font-weight:700; }
+    .atk-card-head span{ font-size:0.7rem; color:var(--text-sm); }
+
+    .atk-body { padding:0 18px 18px; }
+
+    .atk-rows { display:flex; flex-direction:column; gap:0; }
+
+    .atk-row {
+      display:flex; gap:12px; padding:9px 0;
+      border-bottom:1px solid var(--border); font-size:0.82rem;
+    }
+
+    .atk-row:last-child { border-bottom:none; }
+    .atk-key { flex-shrink:0; width:86px; font-weight:600; color:var(--text-sm); font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; }
+    .atk-val { color:var(--text-md); }
+
+    .prevent-list { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+
+    .prevent-item {
+      display:flex; gap:10px; align-items:flex-start;
+      font-size:0.8rem; color:var(--text-md);
+    }
+
+    .prev-dot { width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; margin-top:7px; }
+
+    /* ── STAT CALLOUTS ── */
+    .stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:24px; }
+
+    .stat-box {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; padding:18px 16px; text-align:center;
+      box-shadow:var(--shadow-sm);
+    }
+
+    .stat-val { font-size:2rem; font-weight:800; letter-spacing:-1px; color:var(--primary); }
+    .stat-lbl { font-size:0.75rem; color:var(--text-sm); margin-top:4px; }
+
+    /* ── CODE BLOCK ── */
+    .code-block {
+      background:#1e293b; border-radius:8px; padding:18px 20px;
+      font-family:'IBM Plex Mono', monospace; font-size:0.78rem;
+      color:#e2e8f0; overflow-x:auto; line-height:1.8;
+      margin:16px 0;
+    }
+
+    .code-block .cm { color:#64748b; }
+    .code-block .ck { color:#7dd3fc; }
+    .code-block .cv { color:#a5f3fc; }
+    .code-block .cn { color:#fde68a; }
+
+    /* ── DIVIDER ── */
+    .divider { border:none; border-top:1px solid var(--border); margin:40px 0; }
+
+    /* ── FOOTER ── */
+    footer {
+      background:var(--surface); border-top:1px solid var(--border);
+      padding:20px 28px; text-align:center;
+      font-size:0.78rem; color:var(--text-sm);
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a class="logo-wrap" href="/">
+    <div class="logo-mark">NIDS</div>
+    <div class="logo-text">
+      <div class="logo-name">Network Intrusion Detection System</div>
+      <div class="logo-sub">Educational Guide</div>
+    </div>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link">Live Dashboard</a>
+    <a href="/about" class="nav-link">Model &amp; Dataset</a>
+    <a href="/learn" class="nav-link active">Learn More</a>
+    <div class="nav-divider"></div>
+    <div class="status-ind"><div class="status-dot"></div><div class="status-txt">Online</div></div>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tag">Educational Resource</div>
+  <h1>Understanding Network Intrusion Detection</h1>
+  <p>How AI-powered systems protect networks, why rule-based approaches fall short, and what you can do to defend against modern network attacks.</p>
+  <div class="hero-chips">
+    <span class="chip">Random Forest AI</span>
+    <span class="chip">Rule-Based Detection</span>
+    <span class="chip">DoS Attacks</span>
+    <span class="chip">Port Scanning</span>
+    <span class="chip">Brute Force</span>
+    <span class="chip">Prevention Strategies</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<nav class="toc-bar">
+  <a href="#what-is-nids" class="toc-link">What is NIDS?</a>
+  <a href="#how-ai-works" class="toc-link">How AI Works</a>
+  <a href="#rule-based"   class="toc-link">Rule-Based Systems</a>
+  <a href="#ai-vs-rule"   class="toc-link">AI vs Rule-Based</a>
+  <a href="#attacks"      class="toc-link">Attack Types</a>
+  <a href="#prevention"   class="toc-link">Prevention</a>
+</nav>
+
+<!-- CONTENT -->
+<div class="page-wrap">
+
+  <!-- SECTION 1: What is NIDS -->
+  <div class="section">
+    <span class="section-anchor" id="what-is-nids"></span>
+    <div class="sec-label">Introduction</div>
+    <h2 class="sec-title">What is a Network Intrusion Detection System?</h2>
+    <p class="sec-lead">A Network Intrusion Detection System (NIDS) monitors network traffic in real time, analyzing packet data to identify suspicious or malicious behavior. It sits passively on the network, watching every connection and flagging anomalies before they escalate into breaches.</p>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-val">4.1M</div>
+        <div class="stat-lbl">Cyber attacks detected daily globally</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">280d</div>
+        <div class="stat-lbl">Average days to identify a data breach</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">92%</div>
+        <div class="stat-lbl">Of attacks preventable with early detection</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:var(--green);">AI</div>
+        <div class="stat-lbl">Detects novel attacks rule-based systems miss</div>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🔍</div>
+        <div class="card-head">Signature-Based Detection</div>
+        <div class="card-body">Matches traffic patterns against a database of known attack signatures. Fast and accurate for known threats but entirely blind to new, unseen attack variants (zero-day attacks).</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧠</div>
+        <div class="card-head">Anomaly-Based (AI) Detection</div>
+        <div class="card-body">Learns what "normal" traffic looks like and flags statistical deviations. Can detect novel and evolving attacks even when they don't match any known signature.</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <div class="card-head">Policy/Rule-Based Detection</div>
+        <div class="card-body">Enforces manually-written IF-ELSE rules (e.g., "if more than 400 connections in 2 seconds, flag as DoS"). Simple to understand but requires experts to write and maintain rules continuously.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 2: How AI Works -->
+  <div class="section">
+    <span class="section-anchor" id="how-ai-works"></span>
+    <div class="sec-label">AI Model</div>
+    <h2 class="sec-title">How the AI Model Works — Random Forest</h2>
+    <p class="sec-lead">This NIDS uses a <strong>Random Forest Classifier</strong> trained on the NSL-KDD dataset. Random Forest is an ensemble of decision trees, each trained on a random subset of data, whose majority vote determines the final classification.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Raw Network Packet Arrives</h4>
+          <p>Every TCP/UDP/ICMP connection is captured and its 18 statistical features are extracted — including byte rates, connection counts, error rates, login failures, and service ratios.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Feature Scaling (StandardScaler)</h4>
+          <p>All feature values are normalized using Z-score standardization (mean=0, std=1). This ensures features with large ranges (like src_bytes) don't dominate features with smaller scales (like error rates).</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Voted Classification by 100 Decision Trees</h4>
+          <p>Each of the 100 decision trees in the Random Forest independently classifies the packet. Each tree was trained on a different random subset of the training data and considers a random subset of features at each split — preventing overfitting.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h4>Majority Vote Determines Final Label</h4>
+          <p>The class that receives the most votes among all 100 trees wins. The confidence score is the fraction of trees that agreed (e.g., "92% confidence = 92/100 trees voted for DoS"). The packet is labelled: Normal, DoS, PortScan, or BruteForce.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h4>Alert Generated (if threat detected)</h4>
+          <p>If the predicted label is not Normal, an alert entry is appended to the Security Alert Log on the dashboard with timestamp, severity, and description — without any popup interruption.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block" style="margin-top:20px;">
+<span class="cm"># Simplified: how a packet is classified at runtime</span>
+<br>vec        = [src_bytes, dst_bytes, count, serror_rate, ...]   <span class="cm"># 18 features</span>
+<br>vec_scaled = <span class="ck">scaler</span>.transform(vec)                            <span class="cm"># normalize</span>
+<br>votes      = [<span class="ck">tree</span>.predict(vec_scaled) <span class="cn">for</span> tree <span class="cn">in</span> forest]     <span class="cm"># 100 trees vote</span>
+<br>label      = <span class="cv">majority_vote</span>(votes)                               <span class="cm"># e.g. "DoS"</span>
+<br>confidence = votes.count(label) / <span class="cn">100</span>                           <span class="cm"># e.g. 0.87</span>
+    </div>
+
+    <div class="cards" style="margin-top:20px;">
+      <div class="card">
+        <div class="card-head">Why Random Forest?</div>
+        <div class="card-body">It handles mixed feature types, is resistant to overfitting via ensemble voting, provides calibrated confidence scores, and performs well even with imbalanced class distributions — all critical for NIDS.</div>
+      </div>
+      <div class="card">
+        <div class="card-head">NSL-KDD Dataset</div>
+        <div class="card-body">6,400 labeled network connections used for training. Includes Normal, DoS, PortScan, and BruteForce samples. Each record has 18 numeric features extracted from raw packet-level data.</div>
+      </div>
+      <div class="card">
+        <div class="card-head">Key Features Used</div>
+        <div class="card-body"><strong>src_bytes</strong> (data volume), <strong>count</strong> (connection rate), <strong>serror_rate</strong> (SYN errors), <strong>diff_srv_rate</strong> (service diversity), <strong>num_failed_logins</strong> (authentication failures), and 13 others.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 3: Rule-Based -->
+  <div class="section">
+    <span class="section-anchor" id="rule-based"></span>
+    <div class="sec-label">Rule-Based System</div>
+    <h2 class="sec-title">How Rule-Based Detection Works</h2>
+    <p class="sec-lead">Rule-based NIDS use manually-coded IF-ELSE conditions written by security experts. While they are transparent and fast, they can only catch attacks that exactly match their pre-written rules.</p>
+
+    <div class="code-block">
+<span class="cm"># The 3-rule system used in this NIDS (deliberately limited)</span>
+<br>
+<br><span class="cn">if</span>   count &gt; <span class="cv">400</span>  AND serror_rate &gt; <span class="cv">0.85</span>:
+<br>    label = <span class="ck">"DoS"</span>            <span class="cm"># Only catches extreme, high-volume floods</span>
+<br>
+<br><span class="cn">elif</span> diff_srv_rate &gt; <span class="cv">0.85</span> AND rerror_rate &gt; <span class="cv">0.80</span>:
+<br>    label = <span class="ck">"PortScan"</span>       <span class="cm"># Misses stealthy/slow scans</span>
+<br>
+<br><span class="cn">elif</span> num_failed_logins &gt; <span class="cv">5</span>  AND logged_in == <span class="cv">0</span>:
+<br>    label = <span class="ck">"BruteForce"</span>     <span class="cm"># Misses distributed or slow brute force</span>
+<br>
+<br><span class="cn">else</span>:
+<br>    label = <span class="ck">"Normal"</span>         <span class="cm"># Everything else passes — including moderate attacks!</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-head" style="color:var(--green)">Advantages</div>
+        <div class="card-body">
+          <div class="prevent-list">
+            <div class="prevent-item"><div class="prev-dot"></div>Zero false positives for known, extreme attack patterns</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Fully explainable — any analyst can read the rules</div>
+            <div class="prevent-item"><div class="prev-dot"></div>No training data required</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Very fast at runtime — just a few IF checks</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head" style="color:var(--red)">Limitations</div>
+        <div class="card-body">
+          <div class="prevent-list">
+            <div class="prevent-item"><div class="prev-dot" style="background:var(--red)"></div>Can only detect attacks whose features exceed hard-coded thresholds</div>
+            <div class="prevent-item"><div class="prev-dot" style="background:var(--red)"></div>Completely misses "moderate" attacks that stay below thresholds</div>
+            <div class="prevent-item"><div class="prev-dot" style="background:var(--red)"></div>Requires constant manual updates as attackers adapt</div>
+            <div class="prevent-item"><div class="prev-dot" style="background:var(--red)"></div>Does not generalize to new attack types</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 4: Comparison -->
+  <div class="section">
+    <span class="section-anchor" id="ai-vs-rule"></span>
+    <div class="sec-label">Comparison</div>
+    <h2 class="sec-title">AI vs Rule-Based — Head to Head</h2>
+    <p class="sec-lead">This table shows the fundamental difference between the two approaches across key operational dimensions.</p>
+
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th class="th-ai">AI — Random Forest</th>
+          <th class="th-rule">Rule-Based</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Detection approach</td>
+          <td>Learned from 6,400 examples of real network behavior</td>
+          <td>Manually written IF-ELSE conditions by experts</td>
+        </tr>
+        <tr>
+          <td>Moderate attacks</td>
+          <td class="good">Detects — trained on the full distribution</td>
+          <td class="bad">Misses — values fall below hard thresholds</td>
+        </tr>
+        <tr>
+          <td>Zero-day attacks</td>
+          <td class="good">Partially detects via statistical anomaly</td>
+          <td class="bad">Blind — no rule exists for new attack types</td>
+        </tr>
+        <tr>
+          <td>Features used</td>
+          <td class="good">All 18 packet features simultaneously</td>
+          <td class="bad">Only 3 features checked independently</td>
+        </tr>
+        <tr>
+          <td>Explainability</td>
+          <td style="color:var(--amber);">Moderate — feature importances available</td>
+          <td class="good">Perfect — rules are human-readable</td>
+        </tr>
+        <tr>
+          <td>Maintenance</td>
+          <td class="good">Retrain on new data every few months</td>
+          <td class="bad">Requires manual rule updates as attacks evolve</td>
+        </tr>
+        <tr>
+          <td>Confidence score</td>
+          <td class="good">Yes — probability per class from 100 trees</td>
+          <td class="bad">No — binary yes/no for each rule</td>
+        </tr>
+        <tr>
+          <td>Test accuracy (NSL-KDD)</td>
+          <td class="good">~97–100%</td>
+          <td class="bad">~57–70% (misses moderate attacks)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 5: Attack Types -->
+  <div class="section">
+    <span class="section-anchor" id="attacks"></span>
+    <div class="sec-label">Attack Types</div>
+    <h2 class="sec-title">Network Attacks Detected by This System</h2>
+    <p class="sec-lead">This NIDS detects three major categories of network attacks alongside normal traffic. Each attack type has distinct network-level signatures and real-world consequences.</p>
+
+    <div class="attack-cards">
+
+      <!-- DoS -->
+      <div class="atk-card">
+        <div class="atk-card-head" style="background:var(--red-lt);border-bottom:1px solid #fecaca;">
+          <div class="atk-dot dos"></div>
+          <div>
+            <h3 style="color:var(--red)">Denial of Service (DoS)</h3>
+            <span>Availability attack — Severity: HIGH</span>
+          </div>
+        </div>
+        <div class="atk-body">
+          <div class="atk-rows">
+            <div class="atk-row">
+              <div class="atk-key">What it is</div>
+              <div class="atk-val">An attacker floods a server with overwhelming traffic — thousands of SYN packets per second — exhausting CPU, memory, or bandwidth until the server becomes unavailable to legitimate users.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Harm caused</div>
+              <div class="atk-val">Service outages (websites go offline), financial losses from downtime, and reputational damage. DDoS attacks on banks can cost millions per hour.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Network signs</div>
+              <div class="atk-val">Very high <code>count</code> (150–500+), high SYN error rate (<code>serror_rate</code> &gt; 0.5), minimal <code>dst_bytes</code> (server can't respond).</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Rule vs AI</div>
+              <div class="atk-val">Rule only flags <code>count &gt; 400</code>. AI detects moderate floods at count 150–400 that rules miss entirely.</div>
+            </div>
+          </div>
+          <div class="prevent-list" style="padding-top:12px;border-top:1px solid var(--border);margin-top:12px;">
+            <strong style="font-size:0.78rem;color:var(--text);">Prevention</strong>
+            <div class="prevent-item"><div class="prev-dot"></div>Rate limiting and SYN cookies at the firewall level</div>
+            <div class="prevent-item"><div class="prev-dot"></div>CDN-based traffic scrubbing (Cloudflare, Akamai)</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Anycast network diffusion to distribute load</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Real-time NIDS alert triggering automated IP blocking</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Port Scan -->
+      <div class="atk-card">
+        <div class="atk-card-head" style="background:var(--amber-lt);border-bottom:1px solid #fde68a;">
+          <div class="atk-dot portscan"></div>
+          <div>
+            <h3 style="color:var(--amber)">Port Scanning</h3>
+            <span>Reconnaissance attack — Severity: MEDIUM</span>
+          </div>
+        </div>
+        <div class="atk-body">
+          <div class="atk-rows">
+            <div class="atk-row">
+              <div class="atk-key">What it is</div>
+              <div class="atk-val">An attacker systematically probes ports on a target host to discover which services are running (SSH on 22, HTTP on 80, MySQL on 3306, etc.) and identify potential entry points for a deeper attack.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Harm caused</div>
+              <div class="atk-val">By itself it does no direct damage, but it is always the first stage of a targeted attack. A port scan map is used to plan the actual exploit.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Network signs</div>
+              <div class="atk-val">High <code>diff_srv_rate</code> (many different services probed), high <code>rerror_rate</code> (rejected connections), low <code>src_bytes</code>, minimal <code>duration</code>.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Rule vs AI</div>
+              <div class="atk-val">Stealthy scans with <code>diff_srv_rate</code> 0.60–0.85 and <code>rerror_rate</code> 0.55–0.80 evade the rule but are caught by the AI model.</div>
+            </div>
+          </div>
+          <div class="prevent-list" style="padding-top:12px;border-top:1px solid var(--border);margin-top:12px;">
+            <strong style="font-size:0.78rem;color:var(--text);">Prevention</strong>
+            <div class="prevent-item"><div class="prev-dot"></div>Firewall rules blocking unused ports</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Network segmentation to limit scan surface</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Port-knocking or honeypot ports to detect scanners early</div>
+            <div class="prevent-item"><div class="prev-dot"></div>NIDS alert on rapid cross-port connection attempts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brute Force -->
+      <div class="atk-card">
+        <div class="atk-card-head" style="background:var(--purple-lt);border-bottom:1px solid #e9d5ff;">
+          <div class="atk-dot bruteforce"></div>
+          <div>
+            <h3 style="color:var(--purple)">Brute Force Attack</h3>
+            <span>Authentication attack — Severity: HIGH</span>
+          </div>
+        </div>
+        <div class="atk-body">
+          <div class="atk-rows">
+            <div class="atk-row">
+              <div class="atk-key">What it is</div>
+              <div class="atk-val">An attacker tries thousands of username and password combinations automatically until they find one that works. Modern attacks are often distributed across many IPs to avoid rate-limit detection.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Harm caused</div>
+              <div class="atk-val">Account compromise, data theft, ransomware installation, lateral movement through the network, and full system takeover in worst cases.</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Network signs</div>
+              <div class="atk-val">Elevated <code>num_failed_logins</code> (1–6+), high <code>rerror_rate</code>, repeated connections to the same service (<code>same_srv_rate</code> near 1.0).</div>
+            </div>
+            <div class="atk-row">
+              <div class="atk-key">Rule vs AI</div>
+              <div class="atk-val">Rule only triggers at <code>failed_logins &gt; 5</code>. Distributed attacks (1–2 failures per IP) evade the rule but AI detects the combined pattern.</div>
+            </div>
+          </div>
+          <div class="prevent-list" style="padding-top:12px;border-top:1px solid var(--border);margin-top:12px;">
+            <strong style="font-size:0.78rem;color:var(--text);">Prevention</strong>
+            <div class="prevent-item"><div class="prev-dot"></div>Multi-factor authentication (MFA)</div>
+            <div class="prevent-item"><div class="prev-dot"></div>Account lockout policies (lock after 5 failed attempts)</div>
+            <div class="prevent-item"><div class="prev-dot"></div>CAPTCHA on login forms</div>
+            <div class="prevent-item"><div class="prev-dot"></div>IP reputation blocking and geo-based access rules</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SECTION 6: Prevention -->
+  <div class="section">
+    <span class="section-anchor" id="prevention"></span>
+    <div class="sec-label">Defense Strategies</div>
+    <h2 class="sec-title">How to Defend Your Network</h2>
+    <p class="sec-lead">A modern defense-in-depth strategy combines multiple layers. No single tool is sufficient — the goal is to detect and contain attacks at each layer before they reach critical assets.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">1</div>
+        <div class="step-body">
+          <h4>Perimeter Defense — Firewall and Rate Limiting</h4>
+          <p>The first layer. Stateful firewalls block unauthorized traffic by port and protocol. Rate limiters cap connection rates per IP, preventing volumetric DoS floods from even reaching your servers.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">2</div>
+        <div class="step-body">
+          <h4>Intrusion Detection and Prevention (NIDS/NIPS)</h4>
+          <p>AI-powered NIDS like this one analyze traffic patterns in real time and generate alerts. A NIPS (prevention system) goes further by automatically blocking suspicious IPs when confidence exceeds a threshold.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">3</div>
+        <div class="step-body">
+          <h4>Authentication Hardening</h4>
+          <p>Enforce MFA on all user accounts, use SSH keys instead of passwords for server access, set strong account lockout policies (5 failures = 15-minute lockout), and use password managers to eliminate weak credentials.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">4</div>
+        <div class="step-body">
+          <h4>Network Segmentation and Zero Trust</h4>
+          <p>Divide your network into isolated segments. A compromised machine in one segment cannot reach critical assets in another. Zero Trust means every user and device must authenticate even inside the network perimeter.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num" style="background:var(--green)">5</div>
+        <div class="step-body">
+          <h4>Continuous Monitoring and Incident Response</h4>
+          <p>Alerts are only useful if someone acts on them. Establish a Security Operations Center (SOC) with defined incident response playbooks. Regularly review NIDS logs and tune detection thresholds to reduce false positives over time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BACK TO DASHBOARD -->
+  <div style="text-align:center;padding:20px 0 10px;">
+    <a href="/" style="display:inline-flex;align-items:center;gap:8px;padding:12px 26px;background:var(--primary);color:#fff;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:600;text-decoration:none;border-radius:8px;transition:background 0.15s;">
+      &larr; Return to Live Dashboard
+    </a>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<footer>
+  NIDS Capstone Project &nbsp;|&nbsp; AI vs Rule-Based Network Intrusion Detection &nbsp;|&nbsp; NSL-KDD Dataset
+</footer>
+
+</body>
+</html>

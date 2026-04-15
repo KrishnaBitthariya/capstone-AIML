@@ -1,985 +1,901 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NIDS — Network Intrusion Detection System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg: #040a0f;
-      --panel: #070e16;
-      --border: #0d2233;
-      --accent: #00c8ff;
-      --green: #00ff88;
-      --red: #ff3355;
-      --orange: #ffaa00;
-      --pink: #ff00cc;
-      --text: #b0cce0;
-      --dim: #3a5a70;
-      --glow: 0 0 18px rgba(0, 200, 255, 0.25);
+      --bg:        #f1f5f9;
+      --surface:   #ffffff;
+      --border:    #e2e8f0;
+      --border-md: #cbd5e1;
+      --primary:   #1a56db;
+      --primary-lt:#eff6ff;
+      --text:      #0f172a;
+      --text-md:   #334155;
+      --text-sm:   #64748b;
+      --green:     #059669;
+      --green-lt:  #f0fdf4;
+      --red:       #dc2626;
+      --red-lt:    #fef2f2;
+      --amber:     #d97706;
+      --amber-lt:  #fffbeb;
+      --purple:    #7c3aed;
+      --purple-lt: #f5f3ff;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.07);
     }
 
-    *,
-    *::before,
-    *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 15px;
-      min-height: 100vh;
-      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
     }
 
-    /* Scanline overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(0deg,
-          transparent,
-          transparent 3px,
-          rgba(0, 200, 255, 0.012) 3px,
-          rgba(0, 200, 255, 0.012) 4px);
-      pointer-events: none;
-      z-index: 9999;
-    }
-
-    /* ── Header ─────────────────────────────────────────── */
+    /* ── HEADER ──────────────────────────────────────────── */
     header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 14px 28px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(90deg, #040a0f 0%, #061420 100%);
       position: sticky;
       top: 0;
       z-index: 100;
+      box-shadow: var(--shadow-sm);
     }
 
-    .logo {
-      font-family: 'Orbitron', monospace;
-      font-size: 1.35rem;
-      color: var(--accent);
-      letter-spacing: 3px;
-      text-shadow: var(--glow);
+    .logo-wrap { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+    .logo-mark { background: var(--primary); color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; font-weight: 600; letter-spacing: 1.5px; padding: 5px 12px; border-radius: 5px; }
+    .logo-text .logo-name { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .logo-text .logo-sub  { font-size: 0.68rem; color: var(--text-sm); }
+
+    .nav-right { display: flex; align-items: center; gap: 4px; }
+
+    .nav-link {
+      font-size: 0.78rem; font-weight: 500; color: var(--text-sm);
+      text-decoration: none; padding: 7px 14px;
+      border-radius: 6px; border: 1px solid transparent;
+      transition: all 0.15s; white-space: nowrap;
     }
 
-    .logo span {
-      color: var(--green);
+    .nav-link:hover  { border-color: var(--border); color: var(--text-md); background: var(--bg); }
+    .nav-link.active { border-color: var(--primary); color: var(--primary); background: var(--primary-lt); font-weight: 600; }
+
+    .nav-divider { width: 1px; height: 22px; background: var(--border); margin: 0 8px; }
+
+    .status-ind {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 12px;
+      background: var(--green-lt); border: 1px solid #bbf7d0; border-radius: 20px;
     }
 
-    .status-bar {
-      display: flex;
-      gap: 20px;
-      align-items: center;
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-txt { font-size: 0.68rem; font-weight: 600; color: var(--green); letter-spacing: 0.5px; text-transform: uppercase; }
+
+    #clock { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; color: var(--text-sm); margin-left: 8px; }
+
+    /* ── TOOLBAR ── */
+    .toolbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex; gap: 10px; align-items: center;
     }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 8px var(--green);
-      animation: pulse 1.5s infinite;
+    .btn {
+      font-family: 'Inter', sans-serif; font-size: 0.78rem; font-weight: 600;
+      padding: 7px 18px; border-radius: 6px; border: 1px solid; cursor: pointer; transition: all 0.15s;
     }
 
-    @keyframes pulse {
+    .btn-green  { border-color: var(--green);  color: var(--green);  background: var(--green-lt); }
+    .btn-green:hover, .btn-green.active { background: var(--green); color: #fff; }
+    .btn-slate  { border-color: var(--border-md); color: var(--text-sm); background: var(--surface); }
+    .btn-slate:hover { border-color: var(--red); color: var(--red); background: var(--red-lt); }
 
-      0%,
-      100% {
-        opacity: 1
-      }
+    .speed-lbl  { font-size: 0.72rem; font-weight: 500; color: var(--text-sm); margin-left: 6px; }
 
-      50% {
-        opacity: 0.4
-      }
+    select {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text-md);
+      font-family: 'Inter', sans-serif; font-size: 0.78rem;
+      padding: 6px 10px; border-radius: 6px; cursor: pointer;
     }
 
-    .status-text {
-      font-family: 'Share Tech Mono';
-      font-size: 0.78rem;
-      color: var(--green);
-    }
+    .pkt-total  { font-size: 0.72rem; color: var(--text-sm); margin-left: auto; }
+    #pkt-count  { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--primary); }
 
-    #clock {
-      font-family: 'Share Tech Mono';
-      font-size: 0.85rem;
-      color: var(--dim);
-    }
-
-    /* ── Layout ─────────────────────────────────────────── */
+    /* ── MAIN GRID ── */
     main {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      padding: 16px 20px;
+      gap: 14px;
+      padding: 16px 22px 30px;
       max-width: 1600px;
       margin: 0 auto;
     }
 
-    .full-width {
-      grid-column: 1 / -1;
-    }
+    .full { grid-column: 1 / -1; }
 
-    /* ── Panel ───────────────────────────────────────────── */
+    /* ── PANEL ── */
     .panel {
-      background: var(--panel);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      overflow: hidden;
+      border-radius: 8px; overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
 
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
+    .ph {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 18px;
       border-bottom: 1px solid var(--border);
-      background: rgba(0, 200, 255, 0.03);
+      background: #fafafa;
     }
 
-    .panel-title {
-      font-family: 'Share Tech Mono';
-      font-size: 0.72rem;
-      color: var(--accent);
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    .ph-title {
+      font-size: 0.69rem; font-weight: 600;
+      color: var(--text-md); letter-spacing: 0.8px; text-transform: uppercase;
     }
 
-    .badge {
-      font-family: 'Share Tech Mono';
-      font-size: 0.65rem;
-      padding: 2px 8px;
-      border-radius: 3px;
-      border: 1px solid currentColor;
+    .ph-sub { font-size: 0.66rem; color: var(--text-sm); }
+
+    /* ── ALERT LOG ── */
+    #alert-log {
+      display: flex; flex-direction: column; gap: 0;
+      max-height: 200px;
+      overflow-y: auto;
     }
 
-    .badge-ai {
-      color: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .badge-rule {
-      color: var(--orange);
-      border-color: var(--orange);
-    }
-
-    /* ── Accuracy Cards ──────────────────────────────────── */
-    .accuracy-grid {
+    .alert-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      padding: 16px;
+      grid-template-columns: 80px 70px 110px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 9px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      animation: fadeIn 0.3s ease;
     }
+
+    @keyframes fadeIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:none} }
+
+    .alert-row:last-child { border-bottom: none; }
+
+    .alert-row.dos        { border-left: 3px solid var(--red);    background: #fff8f8; }
+    .alert-row.portscan   { border-left: 3px solid var(--amber);  background: #fffdf5; }
+    .alert-row.bruteforce { border-left: 3px solid var(--purple); background: #fdf8ff; }
+
+    .al-time { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--text-sm); }
+
+    .al-sev {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.6px;
+      padding: 2px 7px; border-radius: 4px; text-transform: uppercase;
+    }
+
+    .sev-high { background: var(--red-lt); color: var(--red); border: 1px solid #fecaca; }
+    .sev-med  { background: var(--amber-lt); color: var(--amber); border: 1px solid #fde68a; }
+
+    .al-type { font-weight: 600; font-size: 0.78rem; }
+    .al-type.t-dos        { color: var(--red); }
+    .al-type.t-portscan   { color: var(--amber); }
+    .al-type.t-bruteforce { color: var(--purple); }
+
+    .al-msg { color: var(--text-sm); font-size: 0.76rem; }
+
+    .alert-empty {
+      padding: 24px 18px; text-align: center;
+      color: var(--text-sm); font-size: 0.8rem;
+    }
+
+    /* ── SESSION COMPARISON ── */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    .compare-col  { padding: 14px 18px; }
+    .compare-col:first-child { border-right: 1px solid var(--border); }
+
+    .compare-col h3 {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.6px;
+      text-transform: uppercase; margin-bottom: 10px;
+      padding-bottom: 7px; border-bottom: 2px solid;
+    }
+
+    .compare-col.ai   h3 { color: var(--primary); border-color: var(--primary); }
+    .compare-col.rule h3 { color: var(--amber);   border-color: var(--amber); }
+
+    .cmp-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.79rem;
+    }
+
+    .cmp-item:last-child { border-bottom: none; }
+    .cmp-key { color: var(--text-sm); }
+    .cmp-val { color: var(--text-md); font-weight: 600; font-size: 0.78rem; }
+
+    #session-correct-ai   { color: var(--primary); font-weight: 700; }
+    #session-correct-rule { color: var(--amber);   font-weight: 700; }
+
+    /* ── ACCURACY CARDS ── */
+    .acc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
 
     .acc-card {
-      text-align: center;
-      padding: 20px 10px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      position: relative;
-      overflow: hidden;
+      padding: 18px 16px; border: 1px solid var(--border);
+      border-radius: 8px; position: relative; overflow: hidden;
     }
 
     .acc-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     }
 
-    .acc-card.ai::before {
-      background: var(--accent);
-      box-shadow: var(--glow);
+    .acc-card.ai::before   { background: var(--primary); }
+    .acc-card.rule::before { background: var(--amber); }
+
+    .acc-lbl  { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-sm); margin-bottom: 6px; }
+    .acc-val  { font-size: 2.2rem; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+    .acc-card.ai   .acc-val { color: var(--primary); }
+    .acc-card.rule .acc-val { color: var(--amber); }
+    .acc-sub  { font-size: 0.69rem; color: var(--text-sm); margin-top: 4px; }
+    .acc-bar  { height: 4px; background: var(--border); border-radius: 2px; margin-top: 10px; }
+    .acc-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+    .acc-card.ai   .acc-fill { background: var(--primary); }
+    .acc-card.rule .acc-fill { background: var(--amber); }
+
+    /* ── COUNTERS ── */
+    .counters { display: grid; grid-template-columns: repeat(4, 1fr); }
+
+    .cnt-card { text-align: center; padding: 18px 10px; border-right: 1px solid var(--border); }
+    .cnt-card:last-child { border-right: none; }
+    .cnt-num { font-size: 1.9rem; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+    .cnt-lbl { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-sm); margin-top: 4px; }
+
+    .cnt-card.normal     .cnt-num { color: var(--green); }
+    .cnt-card.dos        .cnt-num { color: var(--red); }
+    .cnt-card.portscan   .cnt-num { color: var(--amber); }
+    .cnt-card.bruteforce .cnt-num { color: var(--purple); }
+
+    /* ── CHART + BREAKDOWN ROW ── */
+    /* Fixed-height panels so they never jump */
+    .chart-panel { height: 260px; display: flex; align-items: center; justify-content: center; padding: 14px; }
+    .chart-panel canvas { max-height: 232px; max-width: 232px; }
+
+    /* Breakdown panel */
+    #breakdown-list {
+      padding: 16px 20px;
+      display: flex; flex-direction: column;
+      gap: 14px; justify-content: center;
+      height: 260px;
     }
 
-    .acc-card.rule::before {
-      background: var(--orange);
+    .bk-row { display: flex; align-items: center; gap: 10px; }
+    .bk-dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .bk-name { font-size: 0.8rem; font-weight: 600; color: var(--text-md); width: 88px; }
+    .bk-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+    .bk-bar    { height: 6px; border-radius: 3px; transition: width 0.5s ease; min-width: 4px; }
+    .bk-count  { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; color: var(--text-sm); width: 28px; text-align: right; }
+    .bk-pct    { font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem; font-weight: 700; width: 44px; text-align: right; }
+
+    .bk-row.normal     .bk-bar { background: var(--green); }
+    .bk-row.normal     .bk-pct { color: var(--green); }
+    .bk-row.dos        .bk-bar { background: var(--red); }
+    .bk-row.dos        .bk-pct { color: var(--red); }
+    .bk-row.portscan   .bk-bar { background: var(--amber); }
+    .bk-row.portscan   .bk-pct { color: var(--amber); }
+    .bk-row.bruteforce .bk-bar { background: var(--purple); }
+    .bk-row.bruteforce .bk-pct { color: var(--purple); }
+
+    /* ── LIVE FEED — fixed height ── */
+    .feed-cols {
+      display: grid;
+      grid-template-columns: 72px 1fr 1fr 54px 56px 108px 108px;
+      gap: 8px; padding: 8px 18px;
+      border-bottom: 1px solid var(--border);
+      background: #fafafa;
     }
 
-    .acc-label {
-      font-size: 0.7rem;
-      letter-spacing: 2px;
-      color: var(--dim);
-      text-transform: uppercase;
-      margin-bottom: 8px;
+    .fc {
+      font-size: 0.62rem; font-weight: 600;
+      letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-sm);
     }
 
-    .acc-value {
-      font-family: 'Orbitron';
-      font-size: 2.5rem;
-      font-weight: 900;
-    }
+    .fc.ai-c   { color: var(--primary); }
+    .fc.rule-c { color: var(--amber); }
 
-    .acc-card.ai .acc-value {
-      color: var(--accent);
-      text-shadow: var(--glow);
-    }
-
-    .acc-card.rule .acc-value {
-      color: var(--orange);
-    }
-
-    .acc-sub {
-      font-size: 0.75rem;
-      color: var(--dim);
-      margin-top: 4px;
-    }
-
-    .acc-bar {
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      margin-top: 12px;
-    }
-
-    .acc-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 1s ease;
-    }
-
-    .acc-card.ai .acc-fill {
-      background: var(--accent);
-      box-shadow: var(--glow);
-    }
-
-    .acc-card.rule .acc-fill {
-      background: var(--orange);
-    }
-
-    /* ── Live Feed ───────────────────────────────────────── */
     #live-feed {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      height: 492px; overflow: hidden;
+      padding: 0 18px;
+      display: flex; flex-direction: column; gap: 0;
     }
 
-    .packet-row {
+    .pkt-row {
       display: grid;
-      grid-template-columns: 70px 1fr 1fr 55px 55px 90px 90px;
-      gap: 8px;
-      align-items: center;
-      padding: 8px 12px;
+      grid-template-columns: 72px 1fr 1fr 54px 56px 108px 108px;
+      gap: 8px; align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem; flex-shrink: 0; height: 41px;
+    }
+
+    .pkt-row:last-child { border-bottom: none; }
+
+    .pkt-time  { color: var(--text-sm); }
+    .pkt-ip    { color: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pkt-proto { color: var(--primary); font-weight: 500; }
+    .pkt-port  { color: var(--text-sm); }
+
+    .lbadge {
+      display: inline-flex; align-items: center;
+      padding: 2px 7px; border-radius: 4px;
+      font-size: 0.65rem; font-weight: 600; white-space: nowrap;
+    }
+
+    .lbl-Normal     { background: var(--green-lt);  color: var(--green);  border: 1px solid #bbf7d0; }
+    .lbl-DoS        { background: var(--red-lt);    color: var(--red);    border: 1px solid #fecaca; }
+    .lbl-PortScan   { background: var(--amber-lt);  color: var(--amber);  border: 1px solid #fde68a; }
+    .lbl-BruteForce { background: var(--purple-lt); color: var(--purple); border: 1px solid #e9d5ff; }
+    .wrong { opacity: 0.4; text-decoration: line-through; }
+
+    /* ── ATTACK CONTROL PANEL ── */
+    .attack-btns { display: flex; gap: 10px; padding: 16px 18px; flex-wrap: wrap; }
+
+    .atk-btn {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 14px 24px; border-radius: 8px; cursor: pointer;
+      border: 2px solid; font-family: 'Inter', sans-serif; transition: all 0.2s;
+    }
+
+    .atk-btn span { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; }
+    .atk-btn small { font-size: 0.68rem; font-weight: 400; opacity: 0.75; }
+
+    .atk-btn.dos        { border-color: #fecaca; background: var(--red-lt);    color: var(--red); }
+    .atk-btn.portscan   { border-color: #fde68a; background: var(--amber-lt);  color: var(--amber); }
+    .atk-btn.bruteforce { border-color: #e9d5ff; background: var(--purple-lt); color: var(--purple); }
+    .atk-btn.normal     { border-color: #bbf7d0; background: var(--green-lt);  color: var(--green); }
+
+    .atk-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .atk-btn.loading { opacity: 0.6; pointer-events: none; }
+
+    #trigger-result {
+      margin: 0 18px 16px;
       border: 1px solid var(--border);
-      border-radius: 4px;
-      font-family: 'Share Tech Mono';
-      font-size: 0.72rem;
-      background: rgba(255, 255, 255, 0.01);
-      animation: slideIn 0.3s ease;
-      border-left: 3px solid var(--dim);
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(-10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-
-    .packet-row.threat-DoS {
-      border-left-color: var(--red);
-      background: rgba(255, 51, 85, 0.04);
-    }
-
-    .packet-row.threat-PortScan {
-      border-left-color: var(--orange);
-      background: rgba(255, 170, 0, 0.04);
-    }
-
-    .packet-row.threat-BruteForce {
-      border-left-color: var(--pink);
-      background: rgba(255, 0, 204, 0.04);
-    }
-
-    .packet-row.threat-Normal {
-      border-left-color: var(--green);
-    }
-
-    .pkt-time {
-      color: var(--dim);
-    }
-
-    .pkt-ip {
-      color: var(--text);
+      border-radius: 8px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .pkt-proto {
-      color: var(--accent);
-    }
-
-    .pkt-port {
-      color: var(--dim);
-    }
-
-    .label-badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 3px;
-      font-size: 0.65rem;
-      font-weight: bold;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    .lbl-Normal {
-      background: rgba(0, 255, 136, 0.15);
-      color: var(--green);
-      border: 1px solid rgba(0, 255, 136, 0.3);
-    }
-
-    .lbl-DoS {
-      background: rgba(255, 51, 85, 0.15);
-      color: var(--red);
-      border: 1px solid rgba(255, 51, 85, 0.3);
-    }
-
-    .lbl-PortScan {
-      background: rgba(255, 170, 0, 0.15);
-      color: var(--orange);
-      border: 1px solid rgba(255, 170, 0, 0.3);
-    }
-
-    .lbl-BruteForce {
-      background: rgba(255, 0, 204, 0.15);
-      color: var(--pink);
-      border: 1px solid rgba(255, 0, 204, 0.3);
-    }
-
-    .wrong {
-      opacity: 0.5;
-      text-decoration: line-through;
-    }
-
-    .pkt-conf {
-      color: var(--dim);
-    }
-
-    /* ── Alert Banner ────────────────────────────────────── */
-    #alert-banner {
       display: none;
-      padding: 10px 20px;
-      font-family: 'Share Tech Mono';
-      font-size: 0.8rem;
-      letter-spacing: 1px;
-      animation: flash 0.4s ease;
-      border-radius: 4px;
-      margin: 0 16px 12px;
     }
 
-    @keyframes flash {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: 0.6
-      }
+    .tr-header {
+      padding: 10px 14px;
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; background: #fafafa;
+      border-bottom: 1px solid var(--border);
     }
 
-    #alert-banner.dos {
-      background: rgba(255, 51, 85, 0.15);
-      border: 1px solid var(--red);
-      color: var(--red);
-    }
-
-    #alert-banner.portscan {
-      background: rgba(255, 170, 0, 0.15);
-      border: 1px solid var(--orange);
-      color: var(--orange);
-    }
-
-    #alert-banner.bruteforce {
-      background: rgba(255, 0, 204, 0.15);
-      border: 1px solid var(--pink);
-      color: var(--pink);
-    }
-
-    /* ── Counters ────────────────────────────────────────── */
-    .counters {
+    .tr-body {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      padding: 12px 16px;
-    }
-
-    .counter-card {
-      text-align: center;
-      padding: 12px 6px;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-    }
-
-    .counter-num {
-      font-family: 'Orbitron';
-      font-size: 1.6rem;
-      font-weight: 700;
-    }
-
-    .counter-lbl {
-      font-size: 0.65rem;
-      letter-spacing: 1.5px;
-      color: var(--dim);
-      text-transform: uppercase;
-      margin-top: 3px;
-    }
-
-    .counter-card.normal .counter-num {
-      color: var(--green);
-    }
-
-    .counter-card.dos .counter-num {
-      color: var(--red);
-    }
-
-    .counter-card.portscan .counter-num {
-      color: var(--orange);
-    }
-
-    .counter-card.bruteforce .counter-num {
-      color: var(--pink);
-    }
-
-    /* ── Charts ──────────────────────────────────────────── */
-    .chart-wrap {
-      padding: 16px;
-      height: 220px;
-      position: relative;
-    }
-
-    .chart-wrap canvas {
-      max-height: 190px;
-    }
-
-    /* ── Feature importances ─────────────────────────────── */
-    #feat-list {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .feat-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .feat-name {
-      font-family: 'Share Tech Mono';
-      font-size: 0.7rem;
-      width: 160px;
-      color: var(--text);
-    }
-
-    .feat-bar-bg {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-    }
-
-    .feat-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: linear-gradient(90deg, var(--accent), var(--green));
-      transition: width 0.8s ease;
-    }
-
-    .feat-val {
-      font-family: 'Share Tech Mono';
-      font-size: 0.65rem;
-      color: var(--dim);
-      width: 40px;
-      text-align: right;
-    }
-
-    /* ── Controls ────────────────────────────────────────── */
-    .controls {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      padding: 14px 20px;
-      background: var(--panel);
-      border-top: 1px solid var(--border);
-    }
-
-    .btn {
-      font-family: 'Share Tech Mono';
-      font-size: 0.75rem;
-      letter-spacing: 1.5px;
-      padding: 8px 20px;
-      border-radius: 4px;
-      border: 1px solid;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-transform: uppercase;
-      background: transparent;
-    }
-
-    .btn-start {
-      border-color: var(--green);
-      color: var(--green);
-    }
-
-    .btn-start:hover,
-    .btn-start.active {
-      background: var(--green);
-      color: var(--bg);
-      box-shadow: 0 0 14px rgba(0, 255, 136, 0.4);
-    }
-
-    .btn-stop {
-      border-color: var(--red);
-      color: var(--red);
-    }
-
-    .btn-stop:hover {
-      background: var(--red);
-      color: #fff;
-    }
-
-    .speed-label {
-      font-family: 'Share Tech Mono';
-      font-size: 0.7rem;
-      color: var(--dim);
-    }
-
-    select.speed-sel {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'Share Tech Mono';
-      font-size: 0.75rem;
-      padding: 6px 10px;
-      border-radius: 4px;
-    }
-
-    .packets-total {
-      font-family: 'Share Tech Mono';
-      font-size: 0.72rem;
-      color: var(--dim);
-      margin-left: auto;
-    }
-
-    /* ── Comparison section ──────────────────────────────── */
-    .compare-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 0;
     }
 
-    .compare-col {
+    .tr-col {
       padding: 14px 16px;
-    }
-
-    .compare-col:first-child {
       border-right: 1px solid var(--border);
     }
 
-    .compare-col h3 {
-      font-size: 0.75rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
+    .tr-col:last-child { border-right: none; }
+
+    .tr-col-title {
+      font-size: 0.62rem; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--text-sm); margin-bottom: 8px;
     }
 
-    .compare-col.ai h3 {
-      color: var(--accent);
+    .tr-stat { font-size: 0.79rem; color: var(--text-md); margin-bottom: 4px; }
+    .tr-stat strong { font-weight: 600; }
+    .tr-verdict { font-size: 0.75rem; font-weight: 600; margin-top: 8px; padding: 4px 10px; border-radius: 4px; display: inline-block; }
+    .v-correct   { background: var(--green-lt); color: var(--green); border: 1px solid #bbf7d0; }
+    .v-incorrect { background: var(--red-lt);   color: var(--red);   border: 1px solid #fecaca; }
+
+    .tr-feat { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--text-sm); }
+
+    /* ── LEARN MORE SECTION ── */
+    .learn-cta {
+      padding: 28px 22px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
     }
 
-    .compare-col.rule h3 {
-      color: var(--orange);
+    .learn-text h2 { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+    .learn-text p  { font-size: 0.83rem; color: var(--text-sm); line-height: 1.6; max-width: 600px; }
+
+    .learn-link {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      background: var(--primary); color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 600;
+      text-decoration: none; border-radius: 7px;
+      transition: background 0.15s, transform 0.15s;
+      white-space: nowrap;
     }
 
-    .cmp-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-      font-size: 0.8rem;
+    .learn-link:hover { background: #1546b8; transform: translateY(-1px); }
+
+    .learn-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+    .ltag {
+      font-size: 0.7rem; font-weight: 500; padding: 3px 10px;
+      border-radius: 4px; border: 1px solid var(--border);
+      color: var(--text-sm); background: var(--bg);
     }
 
-    .cmp-key {
-      color: var(--dim);
+    .badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.62rem; font-weight: 500;
+      padding: 2px 8px; border-radius: 4px;
     }
 
-    .cmp-val {
-      color: var(--text);
-      font-weight: 600;
-    }
-
-    /* ── Session stats ───────────────────────────────────── */
-    #session-correct-ai,
-    #session-correct-rule {
-      font-family: 'Orbitron';
-      font-size: 0.9rem;
-    }
-
-    #session-correct-ai {
-      color: var(--accent);
-    }
-
-    #session-correct-rule {
-      color: var(--orange);
-    }
+    .badge-ai   { background: var(--primary-lt); color: var(--primary); border: 1px solid #bfdbfe; }
+    .badge-rule { background: var(--amber-lt);   color: var(--amber);   border: 1px solid #fde68a; }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <div class="logo">N<span>I</span>DS &nbsp;·&nbsp; <span
-        style="font-size:0.75rem; font-family:'Share Tech Mono'; color:var(--dim); letter-spacing:1px;">NETWORK
-        INTRUSION DETECTION</span></div>
-    <div class="status-bar">
-      <a href="/about"
-        style="font-family:'Share Tech Mono';font-size:0.7rem;color:var(--dim);text-decoration:none;padding:5px 12px;border:1px solid var(--border);border-radius:3px;margin-right:10px;transition:all 0.2s;"
-        onmouseover="this.style.color='#00c8ff';this.style.borderColor='#00c8ff'"
-        onmouseout="this.style.color='';this.style.borderColor=''">📖 Model & Dataset</a>
-      <div class="status-dot"></div>
-      <div class="status-text">MONITORING ACTIVE</div>
-      <div id="clock">--:--:--</div>
+<!-- ── HEADER ── -->
+<header>
+  <a class="logo-wrap" href="/">
+    <div class="logo-mark">NIDS</div>
+    <div class="logo-text">
+      <div class="logo-name">Network Intrusion Detection System</div>
+      <div class="logo-sub">AI vs Rule-Based Comparison Platform</div>
     </div>
-  </header>
+  </a>
+  <div class="nav-right">
+    <a href="/" class="nav-link active">Live Dashboard</a>
+    <a href="/about" class="nav-link">Model &amp; Dataset</a>
+    <a href="/learn" class="nav-link">Learn More</a>
+    <div class="nav-divider"></div>
+    <div class="status-ind"><div class="status-dot"></div><div class="status-txt">Live</div></div>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
 
-  <main>
+<!-- ── TOOLBAR ── -->
+<div class="toolbar">
+  <button class="btn btn-green" id="btn-start" onclick="startSim()">Start Simulation</button>
+  <button class="btn btn-slate" id="btn-stop"  onclick="stopSim()">Stop</button>
+  <span class="speed-lbl">Speed:</span>
+  <select id="speed-sel">
+    <option value="2000">Slow (2s)</option>
+    <option value="1200" selected>Normal (1.2s)</option>
+    <option value="600">Fast (0.6s)</option>
+  </select>
+  <span class="pkt-total">Packets analysed: <span id="pkt-count">0</span></span>
+</div>
 
-    <!-- Accuracy Comparison -->
-    <div class="panel full-width">
-      <div class="panel-header">
-        <span class="panel-title">⚡ Model Performance — AI vs Rule-Based</span>
-        <span style="font-family:'Share Tech Mono';font-size:0.65rem;color:var(--dim);">NSL-KDD Dataset · Random
-          Forest</span>
-      </div>
-      <div class="accuracy-grid">
-        <div class="acc-card ai">
-          <div class="acc-label">🤖 AI Model (Random Forest)</div>
-          <div class="acc-value" id="ai-acc">—</div>
-          <div class="acc-sub">Test Set Accuracy</div>
-          <div class="acc-bar">
-            <div class="acc-fill" id="ai-acc-bar" style="width:0%"></div>
-          </div>
-        </div>
-        <div class="acc-card rule">
-          <div class="acc-label">📏 Rule-Based (No AI)</div>
-          <div class="acc-value" id="rule-acc">—</div>
-          <div class="acc-sub">Threshold Detection</div>
-          <div class="acc-bar">
-            <div class="acc-fill" id="rule-acc-bar" style="width:0%"></div>
-          </div>
-        </div>
-      </div>
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- 1. Alert Log — persistent, not a popup -->
+  <div class="panel full">
+    <div class="ph">
+      <span class="ph-title">Security Alert Log</span>
+      <span class="ph-sub">Real-time intrusion events — updates live</span>
     </div>
-
-    <!-- Live Feed -->
-    <div class="panel" style="grid-column: 1 / -1;">
-      <div class="panel-header">
-        <span class="panel-title">📡 Live Packet Analysis</span>
-        <div style="display:flex;gap:10px;">
-          <span class="badge badge-ai">AI</span>
-          <span class="badge badge-rule">RULE</span>
-        </div>
-      </div>
-      <div id="alert-banner"></div>
-      <div
-        style="display:grid;grid-template-columns:70px 1fr 1fr 55px 55px 90px 90px;gap:8px;padding:6px 24px;font-family:'Share Tech Mono';font-size:0.62rem;color:var(--dim);border-bottom:1px solid var(--border);">
-        <span>TIME</span><span>SRC IP</span><span>DST IP</span><span>PORT</span><span>PROTO</span>
-        <span style="color:var(--accent);">AI DETECT</span>
-        <span style="color:var(--orange);">RULE DETECT</span>
-      </div>
-      <div id="live-feed"></div>
+    <div id="alert-log">
+      <div class="alert-empty">No alerts yet. Start simulation to begin monitoring.</div>
     </div>
-
-    <!-- Traffic Counters -->
-    <div class="panel full-width">
-      <div class="panel-header"><span class="panel-title">📊 Session Traffic Counters</span></div>
-      <div class="counters">
-        <div class="counter-card normal">
-          <div class="counter-num" id="cnt-normal">0</div>
-          <div class="counter-lbl">Normal</div>
-        </div>
-        <div class="counter-card dos">
-          <div class="counter-num" id="cnt-dos">0</div>
-          <div class="counter-lbl">DoS</div>
-        </div>
-        <div class="counter-card portscan">
-          <div class="counter-num" id="cnt-portscan">0</div>
-          <div class="counter-lbl">Port Scan</div>
-        </div>
-        <div class="counter-card bruteforce">
-          <div class="counter-num" id="cnt-bruteforce">0</div>
-          <div class="counter-lbl">Brute Force</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Traffic Chart -->
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">📈 Live Traffic Distribution (AI)</span></div>
-      <div class="chart-wrap"><canvas id="donut-chart"></canvas></div>
-    </div>
-
-    <!-- Feature Importances -->
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">🔬 Top Feature Importances (Random Forest)</span></div>
-      <div id="feat-list">
-        <p style="padding:16px;color:var(--dim);font-size:0.8rem;">Loading...</p>
-      </div>
-    </div>
-
-    <!-- AI vs Rule Comparison Detail -->
-    <div class="panel full-width">
-      <div class="panel-header"><span class="panel-title">⚖️ AI vs Rule-Based — Session Comparison</span></div>
-      <div class="compare-grid">
-        <div class="compare-col ai">
-          <h3>🤖 AI Detection (Random Forest)</h3>
-          <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Random Forest (100
-              trees)</span></div>
-          <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">All 17 network
-              features</span></div>
-          <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">NSL-KDD (6400
-              samples)</span></div>
-          <div class="cmp-item"><span class="cmp-key">Detection Types</span><span class="cmp-val">DoS, PortScan,
-              BruteForce, Normal</span></div>
-          <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span
-                id="session-correct-ai">0</span> / <span id="session-total-ai">0</span></span></div>
-          <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span
-                id="session-acc-ai">—</span></span></div>
-          <div class="cmp-item"><span class="cmp-key">Advantage</span><span class="cmp-val"
-              style="color:var(--green)">Learns patterns, handles edge cases</span></div>
-        </div>
-        <div class="compare-col rule">
-          <h3>📏 Rule-Based (No AI)</h3>
-          <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Threshold / IF-ELSE
-              Rules</span></div>
-          <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">3 key features
-              only</span></div>
-          <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">None (manual
-              rules)</span></div>
-          <div class="cmp-item"><span class="cmp-key">Detection Types</span><span class="cmp-val">DoS, PortScan,
-              BruteForce, Normal</span></div>
-          <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span
-                id="session-correct-rule">0</span> / <span id="session-total-rule">0</span></span></div>
-          <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span
-                id="session-acc-rule">—</span></span></div>
-          <div class="cmp-item"><span class="cmp-key">Limitation</span><span class="cmp-val"
-              style="color:var(--red)">Misses subtle attacks, many false positives</span></div>
-        </div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Controls -->
-  <div class="controls">
-    <button class="btn btn-start active" id="btn-start" onclick="startSim()">▶ Start Simulation</button>
-    <button class="btn btn-stop" id="btn-stop" onclick="stopSim()">■ Stop</button>
-    <span class="speed-label">SPEED:</span>
-    <select class="speed-sel" id="speed-sel">
-      <option value="2000">Slow (2s)</option>
-      <option value="1200" selected>Normal (1.2s)</option>
-      <option value="600">Fast (0.6s)</option>
-    </select>
-    <span class="packets-total">Packets Analysed: <span id="pkt-count"
-        style="color:var(--accent);font-family:'Share Tech Mono'">0</span></span>
   </div>
 
-  <script>
-    // ── State ─────────────────────────────────────────────────────────────────────
-    let simTimer = null;
-    let pktCount = 0;
-    let counters = { Normal: 0, DoS: 0, PortScan: 0, BruteForce: 0 };
-    let sessionAI = { correct: 0, total: 0 };
-    let sessionRule = { correct: 0, total: 0 };
-    const MAX_ROWS = 12;
-
-    // ── Clock ─────────────────────────────────────────────────────────────────────
-    setInterval(() => {
-      document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-    }, 1000);
-
-    // ── Donut chart ───────────────────────────────────────────────────────────────
-    const donutCtx = document.getElementById('donut-chart').getContext('2d');
-    const donutChart = new Chart(donutCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Normal', 'DoS', 'PortScan', 'BruteForce'],
-        datasets: [{
-          data: [1, 0, 0, 0],
-          backgroundColor: ['rgba(0,255,136,0.7)', 'rgba(255,51,85,0.7)', 'rgba(255,170,0,0.7)', 'rgba(255,0,204,0.7)'],
-          borderColor: ['#00ff88', '#ff3355', '#ffaa00', '#ff00cc'],
-          borderWidth: 2,
-        }]
-      },
-      options: {
-        plugins: { legend: { labels: { color: '#b0cce0', font: { family: "'Rajdhani'", size: 12 } } } },
-        cutout: '65%',
-        animation: { duration: 400 }
-      }
-    });
-
-    // ── Load static stats ─────────────────────────────────────────────────────────
-    async function loadStats() {
-      try {
-        const r = await fetch('/api/stats');
-        const d = await r.json();
-        document.getElementById('ai-acc').textContent = d.ai_accuracy + '%';
-        document.getElementById('rule-acc').textContent = d.rule_accuracy + '%';
-        document.getElementById('ai-acc-bar').style.width = d.ai_accuracy + '%';
-        document.getElementById('rule-acc-bar').style.width = d.rule_accuracy + '%';
-      } catch (e) { console.warn('Stats load failed', e); }
-    }
-
-    async function loadFeatures() {
-      try {
-        const r = await fetch('/api/model-info');
-        const d = await r.json();
-        const list = document.getElementById('feat-list');
-        list.innerHTML = d.feature_importances.map(([name, val]) => `
-      <div class="feat-row">
-        <span class="feat-name">${name}</span>
-        <div class="feat-bar-bg"><div class="feat-bar-fill" style="width:${(val * 100 / d.feature_importances[0][1]).toFixed(1)}%"></div></div>
-        <span class="feat-val">${(val * 100).toFixed(1)}%</span>
+  <!-- 2. Session Comparison -->
+  <div class="panel full">
+    <div class="ph"><span class="ph-title">Session Comparison — AI vs Rule-Based</span></div>
+    <div class="compare-grid">
+      <div class="compare-col ai">
+        <h3>AI Detection — Random Forest</h3>
+        <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Random Forest (100 trees)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">All 18 network features</span></div>
+        <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">NSL-KDD (6,400 samples)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span id="session-correct-ai">0</span> / <span id="session-total-ai">0</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span id="session-acc-ai">—</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Strength</span><span class="cmp-val" style="color:var(--green)">Learns patterns, handles edge cases</span></div>
       </div>
-    `).join('');
-      } catch (e) { }
+      <div class="compare-col rule">
+        <h3>Rule-Based — No AI</h3>
+        <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Threshold / IF-ELSE Rules</span></div>
+        <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">3 features only</span></div>
+        <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">None (manual rules)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span id="session-correct-rule">0</span> / <span id="session-total-rule">0</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span id="session-acc-rule">—</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Limitation</span><span class="cmp-val" style="color:var(--red)">Misses moderate attacks, high false negatives</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Live Accuracy Cards (live from session) -->
+  <div class="panel full">
+    <div class="ph">
+      <span class="ph-title">Live Session Accuracy</span>
+      <span class="ph-sub">NSL-KDD Dataset · Random Forest Classifier</span>
+    </div>
+    <div class="acc-grid">
+      <div class="acc-card ai">
+        <div class="acc-lbl">AI Model — Random Forest</div>
+        <div class="acc-val" id="ai-acc">—</div>
+        <div class="acc-sub" id="ai-acc-sub">Start simulation to see live accuracy</div>
+        <div class="acc-bar"><div class="acc-fill" id="ai-acc-bar" style="width:0%"></div></div>
+      </div>
+      <div class="acc-card rule">
+        <div class="acc-lbl">Rule-Based — No AI</div>
+        <div class="acc-val" id="rule-acc">—</div>
+        <div class="acc-sub" id="rule-acc-sub">Start simulation to see live accuracy</div>
+        <div class="acc-bar"><div class="acc-fill" id="rule-acc-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Traffic Summary Counters -->
+  <div class="panel full">
+    <div class="ph"><span class="ph-title">Session Traffic Summary</span></div>
+    <div class="counters">
+      <div class="cnt-card normal">
+        <div class="cnt-num" id="cnt-normal">0</div>
+        <div class="cnt-lbl">Normal</div>
+      </div>
+      <div class="cnt-card dos">
+        <div class="cnt-num" id="cnt-dos">0</div>
+        <div class="cnt-lbl">Denial of Service</div>
+      </div>
+      <div class="cnt-card portscan">
+        <div class="cnt-num" id="cnt-portscan">0</div>
+        <div class="cnt-lbl">Port Scan</div>
+      </div>
+      <div class="cnt-card bruteforce">
+        <div class="cnt-num" id="cnt-bruteforce">0</div>
+        <div class="cnt-lbl">Brute Force</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5a. Donut Chart (fixed, properly sized) -->
+  <div class="panel">
+    <div class="ph"><span class="ph-title">Traffic Distribution (AI)</span></div>
+    <div class="chart-panel">
+      <canvas id="donut-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- 5b. Traffic Breakdown % -->
+  <div class="panel">
+    <div class="ph">
+      <span class="ph-title">Traffic Breakdown — % per Class</span>
+      <span class="ph-sub">Live</span>
+    </div>
+    <div id="breakdown-list">
+      <div style="padding:30px 18px;text-align:center;color:var(--text-sm);font-size:0.8rem;">Start simulation to see breakdown</div>
+    </div>
+  </div>
+
+  <!-- 6. Live Packet Feed -->
+  <div class="panel full">
+    <div class="ph">
+      <span class="ph-title">Live Packet Analysis</span>
+      <div style="display:flex;gap:8px;">
+        <span class="badge badge-ai">AI MODEL</span>
+        <span class="badge badge-rule">RULE-BASED</span>
+      </div>
+    </div>
+    <div class="feed-cols">
+      <span class="fc">Time</span>
+      <span class="fc">Source IP</span>
+      <span class="fc">Dest IP</span>
+      <span class="fc">Port</span>
+      <span class="fc">Proto</span>
+      <span class="fc ai-c">AI Detection</span>
+      <span class="fc rule-c">Rule Detection</span>
+    </div>
+    <div id="live-feed"></div>
+  </div>
+
+  <!-- 7. Attack Control Panel -->
+  <div class="panel full">
+    <div class="ph">
+      <span class="ph-title">Attack Control Panel — Manual Trigger</span>
+      <span class="ph-sub">Inject a specific attack type and observe AI vs Rule-Based classification in real time</span>
+    </div>
+    <div class="attack-btns">
+      <button class="atk-btn dos"        onclick="triggerAttack('DoS')">
+        <span>DoS Attack</span>
+        <small>Flood / SYN attack</small>
+      </button>
+      <button class="atk-btn portscan"   onclick="triggerAttack('PortScan')">
+        <span>Port Scan</span>
+        <small>Network reconnaissance</small>
+      </button>
+      <button class="atk-btn bruteforce" onclick="triggerAttack('BruteForce')">
+        <span>Brute Force</span>
+        <small>Auth attack</small>
+      </button>
+      <button class="atk-btn normal"     onclick="triggerAttack('Normal')">
+        <span>Normal Traffic</span>
+        <small>Legitimate connection</small>
+      </button>
+    </div>
+
+    <div id="trigger-result">
+      <div class="tr-header" id="tr-header">Result</div>
+      <div class="tr-body">
+        <div class="tr-col">
+          <div class="tr-col-title">Packet Info</div>
+          <div class="tr-stat"><strong>From:</strong> <span id="tr-src"></span></div>
+          <div class="tr-stat"><strong>To:</strong> <span id="tr-dst"></span></div>
+          <div class="tr-stat"><strong>Port:</strong> <span id="tr-port"></span> &nbsp; <strong>Proto:</strong> <span id="tr-proto"></span></div>
+          <div class="tr-stat" style="margin-top:6px;"><strong>True Type:</strong> <span id="tr-true"></span></div>
+        </div>
+        <div class="tr-col">
+          <div class="tr-col-title">AI — Random Forest</div>
+          <div class="tr-stat"><strong>Predicted:</strong> <span id="tr-ai-pred"></span></div>
+          <div class="tr-stat"><strong>Confidence:</strong> <span id="tr-ai-conf"></span></div>
+          <div id="tr-ai-verdict"></div>
+        </div>
+        <div class="tr-col">
+          <div class="tr-col-title">Rule-Based</div>
+          <div class="tr-stat"><strong>Predicted:</strong> <span id="tr-rule-pred"></span></div>
+          <div class="tr-stat" style="color:var(--text-sm);font-size:0.76rem;">Uses 3 features only:<br>count, serror_rate, diff_srv_rate</div>
+          <div id="tr-rule-verdict"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Learn More CTA -->
+  <div class="panel full">
+    <div class="learn-cta">
+      <div class="learn-text">
+        <h2>Learn How the System Works</h2>
+        <p>Understand the science behind AI-based intrusion detection — how Random Forest classifies network traffic, how rule-based systems fail at edge cases, what each attack type does, and how to protect against them.</p>
+        <div class="learn-tags">
+          <span class="ltag">Random Forest</span>
+          <span class="ltag">DoS Attacks</span>
+          <span class="ltag">Port Scanning</span>
+          <span class="ltag">Brute Force</span>
+          <span class="ltag">Prevention Strategies</span>
+          <span class="ltag">NSL-KDD Dataset</span>
+        </div>
+      </div>
+      <a href="/learn" class="learn-link">View Educational Guide &rarr;</a>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  let simTimer  = null;
+  let pktCount  = 0;
+  let counters  = { Normal:0, DoS:0, PortScan:0, BruteForce:0 };
+  let sessionAI   = { correct:0, total:0 };
+  let sessionRule = { correct:0, total:0 };
+  const MAX_ROWS  = 12;
+  const MAX_ALERTS= 10;
+
+  // Clock
+  setInterval(() => document.getElementById('clock').textContent = new Date().toLocaleTimeString(), 1000);
+
+  // Donut chart
+  const donutChart = new Chart(document.getElementById('donut-chart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Normal','DoS','PortScan','BruteForce'],
+      datasets: [{
+        data: [1,0,0,0],
+        backgroundColor: ['rgba(5,150,105,0.8)','rgba(220,38,38,0.8)','rgba(217,119,6,0.8)','rgba(124,58,237,0.8)'],
+        borderColor:     ['#059669','#dc2626','#d97706','#7c3aed'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color:'#334155', font:{ family:"'Inter'", size:12 }, padding:10, boxWidth:12 }
+        }
+      },
+      cutout: '62%',
+      animation: { duration:400 }
     }
+  });
 
-    // ── Simulate one packet ───────────────────────────────────────────────────────
-    async function fetchPacket() {
-      try {
-        const r = await fetch('/api/simulate');
-        const pkt = await r.json();
-        renderPacket(pkt);
-        updateCounters(pkt.ai.label);
-        updateSessionStats(pkt);
-        showAlert(pkt.ai.label);
-        pktCount++;
-        document.getElementById('pkt-count').textContent = pktCount;
-      } catch (e) { console.warn(e); }
-    }
+  // ── Fetch one packet ──────────────────────────────────────────────────────────
+  async function fetchPacket() {
+    try {
+      const r   = await fetch('/api/simulate');
+      const pkt = await r.json();
+      renderPacket(pkt);
+      updateCounters(pkt.ai.label);
+      updateSessionStats(pkt);
+      if (pkt.ai.label !== 'Normal') logAlert(pkt);
+      pktCount++;
+      document.getElementById('pkt-count').textContent = pktCount;
+    } catch(e) { console.warn(e); }
+  }
 
-    function renderPacket(pkt) {
-      const feed = document.getElementById('live-feed');
-      const aiClass = `lbl-${pkt.ai.label}`;
-      const ruleClass = `lbl-${pkt.rule.label}`;
-      const rowClass = `threat-${pkt.ai.label}`;
-      const conf = pkt.ai.confidence.toFixed(0) + '%';
+  function renderPacket(pkt) {
+    const feed = document.getElementById('live-feed');
+    const aiCls   = `lbl-${pkt.ai.label}`;
+    const ruleCls = `lbl-${pkt.rule.label}`;
+    const conf    = pkt.ai.confidence.toFixed(0) + '%';
 
-      const row = document.createElement('div');
-      row.className = `packet-row ${rowClass}`;
-      row.innerHTML = `
-    <span class="pkt-time">${pkt.timestamp}</span>
-    <span class="pkt-ip">${pkt.src_ip}</span>
-    <span class="pkt-ip">${pkt.dst_ip}</span>
-    <span class="pkt-port">${pkt.port}</span>
-    <span class="pkt-proto">${pkt.protocol}</span>
-    <span class="label-badge ${aiClass}">${pkt.ai.label} <small>${conf}</small></span>
-    <span class="label-badge ${ruleClass} ${pkt.rule.correct ? '' : 'wrong'}">${pkt.rule.label}</span>
-  `;
-      feed.insertBefore(row, feed.firstChild);
+    const row = document.createElement('div');
+    row.className = 'pkt-row';
+    row.innerHTML = `
+      <span class="pkt-time">${pkt.timestamp}</span>
+      <span class="pkt-ip">${pkt.src_ip}</span>
+      <span class="pkt-ip">${pkt.dst_ip}</span>
+      <span class="pkt-port">${pkt.port}</span>
+      <span class="pkt-proto">${pkt.protocol}</span>
+      <span class="lbadge ${aiCls}">${pkt.ai.label} <small style="opacity:0.75;font-size:0.6rem;">${conf}</small></span>
+      <span class="lbadge ${ruleCls} ${pkt.rule.correct ? '' : 'wrong'}">${pkt.rule.label}</span>
+    `;
+    feed.insertBefore(row, feed.firstChild);
+    while (feed.children.length > MAX_ROWS) feed.removeChild(feed.lastChild);
+  }
 
-      // Keep max rows
-      while (feed.children.length > MAX_ROWS) feed.removeChild(feed.lastChild);
-    }
+  function updateCounters(label) {
+    counters[label]++;
+    document.getElementById('cnt-normal').textContent    = counters.Normal;
+    document.getElementById('cnt-dos').textContent       = counters.DoS;
+    document.getElementById('cnt-portscan').textContent  = counters.PortScan;
+    document.getElementById('cnt-bruteforce').textContent= counters.BruteForce;
+    donutChart.data.datasets[0].data = [counters.Normal, counters.DoS, counters.PortScan, counters.BruteForce];
+    donutChart.update();
+    updateBreakdown();
+  }
 
-    function updateCounters(label) {
-      counters[label]++;
-      document.getElementById('cnt-normal').textContent = counters.Normal;
-      document.getElementById('cnt-dos').textContent = counters.DoS;
-      document.getElementById('cnt-portscan').textContent = counters.PortScan;
-      document.getElementById('cnt-bruteforce').textContent = counters.BruteForce;
+  function updateSessionStats(pkt) {
+    sessionAI.total++;   sessionRule.total++;
+    if (pkt.ai.correct)   sessionAI.correct++;
+    if (pkt.rule.correct) sessionRule.correct++;
 
-      donutChart.data.datasets[0].data = [
-        counters.Normal, counters.DoS, counters.PortScan, counters.BruteForce
-      ];
-      donutChart.update();
-    }
+    document.getElementById('session-correct-ai').textContent   = sessionAI.correct;
+    document.getElementById('session-total-ai').textContent     = sessionAI.total;
+    document.getElementById('session-correct-rule').textContent = sessionRule.correct;
+    document.getElementById('session-total-rule').textContent   = sessionRule.total;
 
-    function updateSessionStats(pkt) {
-      sessionAI.total++;
-      sessionRule.total++;
-      if (pkt.ai.correct) sessionAI.correct++;
-      if (pkt.rule.correct) sessionRule.correct++;
+    const aiPct   = ((sessionAI.correct   / sessionAI.total)   * 100).toFixed(1);
+    const rulePct = ((sessionRule.correct / sessionRule.total) * 100).toFixed(1);
 
-      document.getElementById('session-correct-ai').textContent = sessionAI.correct;
-      document.getElementById('session-total-ai').textContent = sessionAI.total;
-      document.getElementById('session-correct-rule').textContent = sessionRule.correct;
-      document.getElementById('session-total-rule').textContent = sessionRule.total;
+    document.getElementById('session-acc-ai').textContent   = aiPct + '%';
+    document.getElementById('session-acc-rule').textContent = rulePct + '%';
 
-      const accAI = ((sessionAI.correct / sessionAI.total) * 100).toFixed(1);
-      const accRule = ((sessionRule.correct / sessionRule.total) * 100).toFixed(1);
-      document.getElementById('session-acc-ai').textContent = accAI + '%';
-      document.getElementById('session-acc-rule').textContent = accRule + '%';
-    }
+    // Live accuracy cards
+    document.getElementById('ai-acc').textContent   = aiPct + '%';
+    document.getElementById('rule-acc').textContent = rulePct + '%';
+    document.getElementById('ai-acc-bar').style.width   = aiPct + '%';
+    document.getElementById('rule-acc-bar').style.width = rulePct + '%';
+    document.getElementById('ai-acc-sub').textContent   = `${sessionAI.correct} correct of ${sessionAI.total} packets`;
+    document.getElementById('rule-acc-sub').textContent = `${sessionRule.correct} correct of ${sessionRule.total} packets`;
+  }
 
-    let alertTimer = null;
-    function showAlert(label) {
-      if (label === 'Normal') { return; }
-      const banner = document.getElementById('alert-banner');
-      const msgs = {
-        DoS: '⚠ ALERT — DoS ATTACK DETECTED: High-volume flood traffic from external source!',
-        PortScan: '⚠ ALERT — PORT SCAN DETECTED: Attacker mapping network topology!',
-        BruteForce: '⚠ ALERT — BRUTE FORCE DETECTED: Repeated login failures on target host!'
-      };
-      banner.textContent = msgs[label] || '';
-      banner.className = label.toLowerCase();
-      banner.style.display = 'block';
-      clearTimeout(alertTimer);
-      alertTimer = setTimeout(() => { banner.style.display = 'none'; }, 3500);
-    }
+  // ── Persistent Alert Log ──────────────────────────────────────────────────────
+  const ALERT_INFO = {
+    DoS:        { sev:'HIGH',   cls:'dos',        label:'Denial of Service', msg:'High-volume connection flood — server resource exhaustion detected.' },
+    PortScan:   { sev:'MEDIUM', cls:'portscan',   label:'Port Scan',         msg:'Systematic port probe — attacker mapping open services on the network.' },
+    BruteForce: { sev:'HIGH',   cls:'bruteforce', label:'Brute Force',       msg:'Repeated failed authentication attempts on target host.' },
+  };
 
-    // ── Controls ──────────────────────────────────────────────────────────────────
-    function startSim() {
-      if (simTimer) return;
-      const speed = parseInt(document.getElementById('speed-sel').value);
-      fetchPacket();
-      simTimer = setInterval(fetchPacket, speed);
-      document.getElementById('btn-start').classList.add('active');
-    }
+  function logAlert(pkt) {
+    const log  = document.getElementById('alert-log');
+    const info = ALERT_INFO[pkt.ai.label];
+    if (!info) return;
 
-    function stopSim() {
-      clearInterval(simTimer);
-      simTimer = null;
-      document.getElementById('btn-start').classList.remove('active');
-    }
+    // Remove empty placeholder
+    const empty = log.querySelector('.alert-empty');
+    if (empty) empty.remove();
 
-    document.getElementById('speed-sel').addEventListener('change', () => {
-      if (simTimer) { stopSim(); startSim(); }
-    });
+    const row = document.createElement('div');
+    row.className = `alert-row ${info.cls}`;
+    row.innerHTML = `
+      <span class="al-time">${pkt.timestamp}</span>
+      <span class="al-sev ${info.sev === 'HIGH' ? 'sev-high' : 'sev-med'}">${info.sev}</span>
+      <span class="al-type t-${info.cls}">${info.label}</span>
+      <span class="al-msg">${info.msg} &nbsp;<span style="color:var(--text-sm);font-size:0.7rem;">${pkt.src_ip} → ${pkt.dst_ip}</span></span>
+    `;
+    log.insertBefore(row, log.firstChild);
+    while (log.children.length > MAX_ALERTS) log.removeChild(log.lastChild);
+  }
 
-    // ── Init ──────────────────────────────────────────────────────────────────────
-    loadStats();
-    loadFeatures();
-    startSim();
-  </script>
+  // ── Traffic Breakdown ─────────────────────────────────────────────────────────
+  const BK_CFG = [
+    { key:'Normal',     cls:'normal',     dot:'#059669' },
+    { key:'DoS',        cls:'dos',        dot:'#dc2626' },
+    { key:'PortScan',   cls:'portscan',   dot:'#d97706' },
+    { key:'BruteForce', cls:'bruteforce', dot:'#7c3aed' },
+  ];
+
+  function updateBreakdown() {
+    const total    = Object.values(counters).reduce((a,b)=>a+b,0);
+    if (total === 0) return;
+    const maxCount = Math.max(...BK_CFG.map(c => counters[c.key]));
+
+    document.getElementById('breakdown-list').innerHTML = BK_CFG.map(({key, cls, dot}) => {
+      const cnt  = counters[key];
+      const pct  = ((cnt/total)*100).toFixed(1);
+      const barW = maxCount > 0 ? ((cnt/maxCount)*100).toFixed(1) : 0;
+      return `
+        <div class="bk-row ${cls}">
+          <div class="bk-dot" style="background:${dot}"></div>
+          <span class="bk-name">${key}</span>
+          <div class="bk-bar-bg"><div class="bk-bar" style="width:${barW}%"></div></div>
+          <span class="bk-count">${cnt}</span>
+          <span class="bk-pct">${pct}%</span>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Attack Control Panel ──────────────────────────────────────────────────────
+  async function triggerAttack(type) {
+    const btns = document.querySelectorAll('.atk-btn');
+    btns.forEach(b => b.classList.add('loading'));
+
+    try {
+      const r   = await fetch('/api/trigger', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({attack_type:type}) });
+      const pkt = await r.json();
+
+      // Add to live feed and update all stats
+      renderPacket(pkt);
+      updateCounters(pkt.ai.label);
+      updateSessionStats(pkt);
+      if (pkt.ai.label !== 'Normal') logAlert(pkt);
+      pktCount++;
+      document.getElementById('pkt-count').textContent = pktCount;
+
+      // Show trigger result inline
+      const res = document.getElementById('trigger-result');
+      res.style.display = 'block';
+
+      const sevColor = {DoS:'var(--red)', PortScan:'var(--amber)', BruteForce:'var(--purple)', Normal:'var(--green)'}[type];
+      document.getElementById('tr-header').innerHTML     = `Triggered: <strong style="color:${sevColor}">${type}</strong> &nbsp;— Classification Result`;
+      document.getElementById('tr-src').textContent    = pkt.src_ip;
+      document.getElementById('tr-dst').textContent    = pkt.dst_ip;
+      document.getElementById('tr-port').textContent   = pkt.port;
+      document.getElementById('tr-proto').textContent  = pkt.protocol;
+      document.getElementById('tr-true').innerHTML     = `<strong style="color:${sevColor}">${pkt.true_label}</strong>`;
+
+      document.getElementById('tr-ai-pred').innerHTML  = `<span class="lbadge lbl-${pkt.ai.label}">${pkt.ai.label}</span>`;
+      document.getElementById('tr-ai-conf').textContent= pkt.ai.confidence.toFixed(1) + '%';
+      document.getElementById('tr-ai-verdict').innerHTML = pkt.ai.correct
+        ? '<span class="tr-verdict v-correct">Correctly Identified</span>'
+        : '<span class="tr-verdict v-incorrect">Missed / Misclassified</span>';
+
+      document.getElementById('tr-rule-pred').innerHTML = `<span class="lbadge lbl-${pkt.rule.label}">${pkt.rule.label}</span>`;
+      document.getElementById('tr-rule-verdict').innerHTML = pkt.rule.correct
+        ? '<span class="tr-verdict v-correct">Correctly Identified</span>'
+        : '<span class="tr-verdict v-incorrect">Missed / Misclassified</span>';
+
+    } catch(e) { console.error(e); }
+    btns.forEach(b => b.classList.remove('loading'));
+  }
+
+  // ── Simulation Controls ───────────────────────────────────────────────────────
+  function startSim() {
+    if (simTimer) return;
+    const speed = parseInt(document.getElementById('speed-sel').value);
+    fetchPacket();
+    simTimer = setInterval(fetchPacket, speed);
+    document.getElementById('btn-start').classList.add('active');
+  }
+
+  function stopSim() {
+    clearInterval(simTimer); simTimer = null;
+    document.getElementById('btn-start').classList.remove('active');
+  }
+
+  document.getElementById('speed-sel').addEventListener('change', () => { if (simTimer) { stopSim(); startSim(); } });
+  // No auto-start
+</script>
 </body>
-
 </html>
