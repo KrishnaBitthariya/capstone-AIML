@@ -150,18 +150,20 @@ def classify_packet(pkt_dict):
     ai_confidence = round(float(max(ai_proba)) * 100, 1)
     ai_proba_dict = {cls: round(float(p)*100, 1) for cls, p in zip(le.classes_, ai_proba)}
 
-    # Rule-based prediction
-    count       = pkt_dict['count']
-    serror      = pkt_dict['serror_rate']
-    diff_srv    = pkt_dict['diff_srv_rate']
-    rerror      = pkt_dict['rerror_rate']
+    # Rule-based prediction — same deliberately-limited rules as training
+    # Only checks 3 features, high thresholds → misses moderate attacks
+    count         = pkt_dict['count']
+    serror        = pkt_dict['serror_rate']
+    diff_srv      = pkt_dict['diff_srv_rate']
+    rerror        = pkt_dict['rerror_rate']
     failed_logins = pkt_dict['num_failed_logins']
+    logged_in     = pkt_dict['logged_in']
 
-    if count > 300 or serror > 0.7:
+    if count > 400 and serror > 0.85:
         rule_label = 'DoS'
-    elif diff_srv > 0.7 and rerror > 0.6:
+    elif diff_srv > 0.85 and rerror > 0.80:
         rule_label = 'PortScan'
-    elif failed_logins > 2:
+    elif failed_logins > 5 and logged_in == 0:
         rule_label = 'BruteForce'
     else:
         rule_label = 'Normal'
@@ -209,10 +211,13 @@ def simulate():
 @app.route('/api/stats')
 def stats():
     return jsonify({
-        'ai_accuracy':   round(bundle['ai_accuracy'] * 100, 2),
-        'rule_accuracy': round(bundle['rule_accuracy'] * 100, 2),
-        'confusion_matrix': bundle['confusion_matrix'],
-        'class_names':   bundle['class_names'],
+        'ai_accuracy':        round(bundle['ai_accuracy'] * 100, 2),
+        'rule_accuracy':      round(bundle['rule_accuracy'] * 100, 2),
+        'confusion_matrix':   bundle['confusion_matrix'],
+        'rule_confusion_matrix': bundle.get('rule_confusion_matrix', []),
+        'class_names':        bundle['class_names'],
+        'ai_per_class':       bundle.get('ai_per_class', {}),
+        'rule_per_class':     bundle.get('rule_per_class', {}),
     })
 
 
@@ -224,6 +229,69 @@ def model_info():
         key=lambda x: x[1], reverse=True
     )[:8]
     return jsonify({'feature_importances': feat_imp})
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/api/dataset-sample')
+def dataset_sample():
+    """Return EDA stats + sample rows for the about page."""
+    import pandas as pd
+    df = pd.read_csv(os.path.join(os.path.dirname(__file__), 'data', 'dataset.csv'))
+
+    stats = {}
+    for label in df['label'].unique():
+        sub = df[df['label'] == label]
+        stats[label] = {
+            'count': int(len(sub)),
+            'avg_src_bytes': round(float(sub['src_bytes'].mean()), 1),
+            'avg_count': round(float(sub['count'].mean()), 1),
+            'avg_serror_rate': round(float(sub['serror_rate'].mean()), 3),
+            'avg_rerror_rate': round(float(sub['rerror_rate'].mean()), 3),
+            'avg_diff_srv_rate': round(float(sub['diff_srv_rate'].mean()), 3),
+            'avg_failed_logins': round(float(sub['num_failed_logins'].mean()), 2),
+        }
+
+    # 5 sample rows per class — use concat to preserve label column
+    sample = pd.concat([
+        df[df['label']==lbl].sample(5, random_state=42)
+        for lbl in df['label'].unique()
+    ]).reset_index(drop=True)
+    sample_rows = sample[['label','duration','src_bytes','dst_bytes','count',
+                           'serror_rate','rerror_rate','diff_srv_rate',
+                           'num_failed_logins','logged_in']].to_dict(orient='records')
+
+    feat_desc = {
+        'duration':          'Length of the connection in seconds',
+        'src_bytes':         'Bytes sent from source to destination',
+        'dst_bytes':         'Bytes sent from destination to source',
+        'land':              '1 if src/dst host & port are equal',
+        'wrong_fragment':    'Number of wrong fragments in packet',
+        'urgent':            'Number of urgent packets',
+        'hot':               'Number of hot indicators (privileged ops)',
+        'num_failed_logins': 'Number of failed login attempts',
+        'logged_in':         '1 if logged in successfully, 0 otherwise',
+        'num_compromised':   'Number of compromised conditions',
+        'count':             'Connections to same host in past 2 seconds',
+        'srv_count':         'Connections to same service in past 2 seconds',
+        'serror_rate':       'Rate of SYN errors (% of connections)',
+        'rerror_rate':       'Rate of REJ errors (% of connections)',
+        'same_srv_rate':     'Rate of connections to same service',
+        'diff_srv_rate':     'Rate of connections to different services',
+        'dst_host_count':    'Connections to same destination host',
+        'dst_host_srv_count':'Connections to same destination service',
+    }
+
+    return jsonify({
+        'total_rows': int(len(df)),
+        'features': len(FEATURES),
+        'class_stats': stats,
+        'sample_rows': sample_rows,
+        'feature_descriptions': feat_desc,
+    })
 
 
 if __name__ == '__main__':

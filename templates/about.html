@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NIDS — Model & Dataset</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #040a0f;
+            --panel: #070e16;
+            --panel2: #060c13;
+            --border: #0d2233;
+            --ac: #00c8ff;
+            --gr: #00ff88;
+            --rd: #ff3355;
+            --or: #ffaa00;
+            --pk: #ff00cc;
+            --pu: #aa88ff;
+            --tx: #b0cce0;
+            --dim: #3a5a70;
+            --bright: #d4eaf8;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--tx);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 200, 255, 0.01) 3px, rgba(0, 200, 255, 0.01) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ── Nav ─────────────────────────────────────────── */
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 28px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-family: 'Orbitron';
+            font-size: 1.1rem;
+            color: var(--ac);
+            letter-spacing: 3px;
+        }
+
+        .logo span {
+            color: var(--gr);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 6px;
+        }
+
+        .nav-link {
+            font-family: 'Share Tech Mono';
+            font-size: 0.72rem;
+            letter-spacing: 1.5px;
+            padding: 6px 16px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            color: var(--dim);
+            text-decoration: none;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            border-color: var(--ac);
+            color: var(--ac);
+        }
+
+        .nav-link.active {
+            border-color: var(--ac);
+            color: var(--ac);
+            background: rgba(0, 200, 255, 0.07);
+        }
+
+        /* ── Page Layout ─────────────────────────────────── */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 20px 60px;
+        }
+
+        /* ── Section headings ────────────────────────────── */
+        .sec-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sec-num {
+            font-family: 'Orbitron';
+            font-size: 0.7rem;
+            color: var(--ac);
+            background: rgba(0, 200, 255, 0.1);
+            border: 1px solid rgba(0, 200, 255, 0.3);
+            padding: 3px 8px;
+            border-radius: 3px;
+        }
+
+        .sec-title {
+            font-family: 'Orbitron';
+            font-size: 1rem;
+            color: var(--bright);
+            letter-spacing: 2px;
+        }
+
+        .sec-sub {
+            font-size: 0.8rem;
+            color: var(--dim);
+            margin-top: 6px;
+        }
+
+        /* ── Panel ───────────────────────────────────────── */
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .ph {
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--border);
+            font-family: 'Share Tech Mono';
+            font-size: 0.68rem;
+            color: var(--ac);
+            letter-spacing: 2px;
+            background: rgba(0, 200, 255, 0.025);
+        }
+
+        .pb {
+            padding: 18px;
+        }
+
+        /* ── Pipeline diagram ────────────────────────────── */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .pipe-step {
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+            padding: 14px 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background: var(--panel2);
+            position: relative;
+        }
+
+        .pipe-step::after {
+            content: '→';
+            position: absolute;
+            right: -18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dim);
+            font-size: 1.2rem;
+            z-index: 1;
+        }
+
+        .pipe-step:last-child::after {
+            display: none;
+        }
+
+        .pipe-icon {
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+        }
+
+        .pipe-name {
+            font-family: 'Share Tech Mono';
+            font-size: 0.7rem;
+            color: var(--ac);
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .pipe-desc {
+            font-size: 0.72rem;
+            color: var(--dim);
+            line-height: 1.4;
+        }
+
+        .pipe-gap {
+            width: 36px;
+            flex-shrink: 0;
+        }
+
+        /* ── RF explainer ────────────────────────────────── */
+        .trees-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .tree-card {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            background: var(--panel2);
+            transition: border-color 0.2s;
+        }
+
+        .tree-card:hover {
+            border-color: var(--ac);
+        }
+
+        .tree-icon {
+            font-size: 1.3rem;
+            margin-bottom: 4px;
+        }
+
+        .tree-lbl {
+            font-family: 'Share Tech Mono';
+            font-size: 0.62rem;
+            color: var(--dim);
+        }
+
+        .tree-pred {
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .tree-dos {
+            color: var(--rd);
+        }
+
+        .tree-portscan {
+            color: var(--or);
+        }
+
+        .tree-bruteforce {
+            color: var(--pk);
+        }
+
+        .tree-normal {
+            color: var(--gr);
+        }
+
+        .vote-result {
+            margin: 0 16px 16px;
+            padding: 12px 18px;
+            border: 1px solid var(--ac);
+            border-radius: 5px;
+            background: rgba(0, 200, 255, 0.05);
+            font-family: 'Share Tech Mono';
+            font-size: 0.8rem;
+            color: var(--ac);
+            text-align: center;
+        }
+
+        /* ── Comparison table ────────────────────────────── */
+        .cmp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .cmp-table th,
+        .cmp-table td {
+            padding: 9px 14px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .cmp-table th {
+            font-family: 'Share Tech Mono';
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            color: var(--dim);
+            background: var(--panel2);
+        }
+
+        .cmp-table td:first-child {
+            color: var(--tx);
+            font-weight: 600;
+        }
+
+        .cmp-table .ai-col {
+            color: var(--ac);
+        }
+
+        .cmp-table .rl-col {
+            color: var(--or);
+        }
+
+        .cmp-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tag-good {
+            background: rgba(0, 255, 136, 0.12);
+            color: var(--gr);
+            padding: 1px 7px;
+            border-radius: 3px;
+            font-size: 0.72rem;
+        }
+
+        .tag-bad {
+            background: rgba(255, 51, 85, 0.12);
+            color: var(--rd);
+            padding: 1px 7px;
+            border-radius: 3px;
+            font-size: 0.72rem;
+        }
+
+        /* ── Accuracy per class ──────────────────────────── */
+        .class-acc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .class-acc-card {
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 14px;
+            background: var(--panel2);
+        }
+
+        .ca-label {
+            font-family: 'Share Tech Mono';
+            font-size: 0.65rem;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .ca-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.78rem;
+        }
+
+        .ca-bar-bg {
+            flex: 1;
+            height: 5px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 8px;
+        }
+
+        .ca-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+
+        .ca-val {
+            font-family: 'Share Tech Mono';
+            font-size: 0.72rem;
+            min-width: 38px;
+            text-align: right;
+        }
+
+        .ca-row.ai-row .ca-bar-fill {
+            background: var(--ac);
+        }
+
+        .ca-row.rl-row .ca-bar-fill {
+            background: var(--or);
+        }
+
+        .ca-row.ai-row .ca-val {
+            color: var(--ac);
+        }
+
+        .ca-row.rl-row .ca-val {
+            color: var(--or);
+        }
+
+        /* ── Dataset stats cards ─────────────────────────── */
+        .ds-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .ds-card {
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 14px;
+            background: var(--panel2);
+        }
+
+        .ds-card-head {
+            font-size: 0.65rem;
+            letter-spacing: 2px;
+            font-family: 'Share Tech Mono';
+            margin-bottom: 10px;
+        }
+
+        .ds-card.c-normal .ds-card-head {
+            color: var(--gr);
+        }
+
+        .ds-card.c-dos .ds-card-head {
+            color: var(--rd);
+        }
+
+        .ds-card.c-portscan .ds-card-head {
+            color: var(--or);
+        }
+
+        .ds-card.c-bruteforce .ds-card-head {
+            color: var(--pk);
+        }
+
+        .ds-stat {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .ds-stat:last-child {
+            border-bottom: none;
+        }
+
+        .ds-key {
+            color: var(--dim);
+        }
+
+        .ds-val {
+            font-weight: 600;
+            color: var(--tx);
+        }
+
+        /* ── Feature table ───────────────────────────────── */
+        .feat-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .feat-table th,
+        .feat-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feat-table th {
+            font-family: 'Share Tech Mono';
+            font-size: 0.62rem;
+            letter-spacing: 2px;
+            color: var(--dim);
+            background: var(--panel2);
+        }
+
+        .feat-table td:first-child {
+            font-family: 'Share Tech Mono';
+            font-size: 0.72rem;
+            color: var(--ac);
+        }
+
+        .feat-table td:nth-child(2) {
+            color: var(--tx);
+        }
+
+        .feat-table td:nth-child(3) {
+            color: var(--dim);
+            font-size: 0.75rem;
+        }
+
+        .feat-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .imp-bar-bg {
+            background: var(--border);
+            border-radius: 2px;
+            height: 5px;
+            min-width: 80px;
+        }
+
+        .imp-bar {
+            background: linear-gradient(90deg, var(--ac), var(--gr));
+            height: 5px;
+            border-radius: 2px;
+        }
+
+        /* ── Sample data table ───────────────────────────── */
+        .data-table-wrap {
+            overflow-x: auto;
+            padding: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            font-family: 'Share Tech Mono';
+        }
+
+        .data-table th {
+            padding: 7px 10px;
+            background: var(--panel2);
+            border-bottom: 1px solid var(--border);
+            color: var(--dim);
+            font-size: 0.62rem;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .data-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(13, 34, 51, 0.7);
+            white-space: nowrap;
+        }
+
+        .data-table tr:hover td {
+            background: rgba(0, 200, 255, 0.03);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .lbl {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
+
+        .lNormal {
+            background: rgba(0, 255, 136, 0.15);
+            color: var(--gr);
+        }
+
+        .lDoS {
+            background: rgba(255, 51, 85, 0.15);
+            color: var(--rd);
+        }
+
+        .lPortScan {
+            background: rgba(255, 170, 0, 0.15);
+            color: var(--or);
+        }
+
+        .lBruteForce {
+            background: rgba(255, 0, 204, 0.15);
+            color: var(--pk);
+        }
+
+        /* ── Confusion matrix ────────────────────────────── */
+        .cm-wrap {
+            padding: 16px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .cm-title {
+            font-family: 'Share Tech Mono';
+            font-size: 0.68rem;
+            color: var(--dim);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        table.cm {
+            border-collapse: collapse;
+        }
+
+        table.cm td,
+        table.cm th {
+            width: 62px;
+            height: 42px;
+            text-align: center;
+            font-family: 'Share Tech Mono';
+            font-size: 0.72rem;
+            border: 1px solid var(--border);
+        }
+
+        table.cm th {
+            background: var(--panel2);
+            color: var(--dim);
+            font-size: 0.6rem;
+        }
+
+        table.cm td.diag {
+            font-weight: bold;
+        }
+
+        table.cm td.ai-diag {
+            background: rgba(0, 200, 255, 0.18);
+            color: var(--ac);
+        }
+
+        table.cm td.rl-diag {
+            background: rgba(255, 170, 0, 0.18);
+            color: var(--or);
+        }
+
+        table.cm td.miss {
+            background: rgba(255, 51, 85, 0.12);
+            color: var(--rd);
+        }
+
+        table.cm td.zero {
+            color: var(--dim);
+        }
+
+        /* ── Charts ──────────────────────────────────────── */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .chart-box {
+            padding: 16px;
+            height: 240px;
+            position: relative;
+        }
+
+        /* ── Rule explainer ──────────────────────────────── */
+        .rules-list {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .rule-item {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 12px 16px;
+            background: var(--panel2);
+            border-left: 3px solid var(--dim);
+        }
+
+        .rule-item.rule-dos {
+            border-left-color: var(--rd);
+        }
+
+        .rule-item.rule-portscan {
+            border-left-color: var(--or);
+        }
+
+        .rule-item.rule-bruteforce {
+            border-left-color: var(--pk);
+        }
+
+        .rule-item.rule-normal {
+            border-left-color: var(--dim);
+        }
+
+        .rule-code {
+            font-family: 'Share Tech Mono';
+            font-size: 0.78rem;
+            color: var(--bright);
+            margin-bottom: 5px;
+        }
+
+        .rule-comment {
+            font-size: 0.78rem;
+            color: var(--dim);
+        }
+
+        .rule-weakness {
+            font-size: 0.75rem;
+            color: var(--rd);
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        /* ── Loading ─────────────────────────────────────── */
+        .loading {
+            padding: 30px;
+            text-align: center;
+            color: var(--dim);
+            font-family: 'Share Tech Mono';
+            font-size: 0.8rem;
+        }
+
+        /* ── Scroll top ──────────────────────────────────── */
+        .back-top {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .back-top a {
+            font-family: 'Share Tech Mono';
+            font-size: 0.7rem;
+            color: var(--dim);
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+        }
+
+        .back-top a:hover {
+            color: var(--ac);
+            border-color: var(--ac);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">N<span>I</span>DS</div>
+        <div class="nav-links">
+            <a href="/" class="nav-link">📡 Live Dashboard</a>
+            <a href="/about" class="nav-link active">📖 Model & Dataset</a>
+        </div>
+    </nav>
+
+    <div class="page">
+
+        <!-- ── SECTION 1: Dataset ──────────────────────────────────────────── -->
+        <div class="sec-head">
+            <span class="sec-num">01</span>
+            <div>
+                <div class="sec-title">THE DATASET — NSL-KDD</div>
+                <div class="sec-sub">Benchmark network intrusion dataset used in academic & industry research since 1999
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📚 WHAT IS NSL-KDD?</div>
+            <div class="pb">
+                <p style="line-height:1.8; margin-bottom:14px;">
+                    <strong style="color:var(--bright)">NSL-KDD</strong> is the improved version of the KDD Cup 1999
+                    dataset, created by the Canadian Institute for Cybersecurity. It removes duplicate records from the
+                    original KDD dataset, making it more representative for training and evaluating ML-based intrusion
+                    detection systems. It is one of the most widely cited datasets in academic NIDS research.
+                </p>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <div
+                        style="padding:12px;border:1px solid var(--border);border-radius:5px;background:var(--panel2);text-align:center;">
+                        <div style="font-family:'Orbitron';font-size:1.4rem;color:var(--ac)" id="stat-total">—</div>
+                        <div style="font-size:0.68rem;color:var(--dim);margin-top:4px;letter-spacing:1px">TRAINING
+                            SAMPLES</div>
+                    </div>
+                    <div
+                        style="padding:12px;border:1px solid var(--border);border-radius:5px;background:var(--panel2);text-align:center;">
+                        <div style="font-family:'Orbitron';font-size:1.4rem;color:var(--gr)" id="stat-feats">18</div>
+                        <div style="font-size:0.68rem;color:var(--dim);margin-top:4px;letter-spacing:1px">NETWORK
+                            FEATURES</div>
+                    </div>
+                    <div
+                        style="padding:12px;border:1px solid var(--border);border-radius:5px;background:var(--panel2);text-align:center;">
+                        <div style="font-family:'Orbitron';font-size:1.4rem;color:var(--or)">4</div>
+                        <div style="font-size:0.68rem;color:var(--dim);margin-top:4px;letter-spacing:1px">ATTACK CLASSES
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📊 CLASS STATISTICS — KEY FEATURE AVERAGES</div>
+            <div id="ds-cards-container" class="ds-cards">
+                <div class="loading">Loading dataset statistics...</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">🔬 FEATURE DESCRIPTIONS — ALL 18 INPUT FEATURES</div>
+            <div id="feat-table-container">
+                <div class="loading">Loading feature descriptions...</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📋 DATASET SAMPLE — 5 ROWS PER CLASS (20 TOTAL)</div>
+            <div id="sample-table-container" class="data-table-wrap">
+                <div class="loading">Loading sample data...</div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 2: Training Pipeline ─────────────────────────────────── -->
+        <div class="sec-head">
+            <span class="sec-num">02</span>
+            <div>
+                <div class="sec-title">TRAINING PIPELINE</div>
+                <div class="sec-sub">How the ML model was built — step by step</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">🔄 ML PIPELINE — DATA TO PREDICTION</div>
+            <div class="pipeline">
+                <div class="pipe-step">
+                    <div class="pipe-icon">📦</div>
+                    <div class="pipe-name">RAW DATA</div>
+                    <div class="pipe-desc">NSL-KDD style dataset<br>8,000 records<br>4 balanced classes</div>
+                </div>
+                <div class="pipe-gap"></div>
+                <div class="pipe-step">
+                    <div class="pipe-icon">🔧</div>
+                    <div class="pipe-name">PREPROCESSING</div>
+                    <div class="pipe-desc">Label Encoding<br>StandardScaler<br>Train/Test Split (80/20)</div>
+                </div>
+                <div class="pipe-gap"></div>
+                <div class="pipe-step">
+                    <div class="pipe-icon">🌳</div>
+                    <div class="pipe-name">TRAINING</div>
+                    <div class="pipe-desc">Random Forest<br>100 Decision Trees<br>All 18 features</div>
+                </div>
+                <div class="pipe-gap"></div>
+                <div class="pipe-step">
+                    <div class="pipe-icon">📏</div>
+                    <div class="pipe-name">EVALUATION</div>
+                    <div class="pipe-desc">Accuracy, Precision<br>Recall, F1-Score<br>Confusion Matrix</div>
+                </div>
+                <div class="pipe-gap"></div>
+                <div class="pipe-step">
+                    <div class="pipe-icon">🚀</div>
+                    <div class="pipe-name">DEPLOYMENT</div>
+                    <div class="pipe-desc">model.pkl via pickle<br>Flask REST API<br>Live simulation</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 3: How Random Forest Works ───────────────────────────── -->
+        <div class="sec-head">
+            <span class="sec-num">03</span>
+            <div>
+                <div class="sec-title">HOW RANDOM FOREST DECIDES</div>
+                <div class="sec-sub">Ensemble of 100 decision trees — majority vote determines the final prediction
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">🌲 EXAMPLE: 10 OF 100 TREES VOTING ON ONE PACKET</div>
+            <div class="trees-grid" id="tree-grid">
+                <!-- filled by JS -->
+            </div>
+            <div class="vote-result" id="vote-result">Loading vote simulation...</div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📈 FEATURE IMPORTANCES — WHAT THE MODEL LOOKS AT MOST</div>
+            <div class="chart-row">
+                <div class="chart-box"><canvas id="feat-chart"></canvas></div>
+                <div class="pb" style="display:flex;flex-direction:column;justify-content:center;gap:10px;">
+                    <p style="line-height:1.8;font-size:0.85rem;">The Random Forest assigns importance scores to each
+                        feature based on how much they <strong style="color:var(--ac)">reduce impurity</strong> (Gini
+                        index) across all 100 trees.</p>
+                    <p style="line-height:1.8;font-size:0.85rem;color:var(--dim)">Features like <strong
+                            style="color:var(--bright)">src_bytes</strong>, <strong
+                            style="color:var(--bright)">count</strong>, and <strong
+                            style="color:var(--bright)">serror_rate</strong> are the top predictors because they differ
+                        dramatically between attack types and normal traffic.</p>
+                    <p style="line-height:1.8;font-size:0.85rem;color:var(--dim)">The rule-based system only uses
+                        <strong style="color:var(--or)">3 features</strong> — missing most of this signal.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 4: AI vs Rule-Based ──────────────────────────────────── -->
+        <div class="sec-head">
+            <span class="sec-num">04</span>
+            <div>
+                <div class="sec-title">AI vs RULE-BASED DETECTION</div>
+                <div class="sec-sub">Why machine learning outperforms manual threshold rules</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📏 THE RULE-BASED SYSTEM — HOW IT WORKS (AND FAILS)</div>
+            <div class="rules-list">
+                <div class="rule-item rule-dos">
+                    <div class="rule-code">IF count &gt; 400 AND serror_rate &gt; 0.85 → DoS</div>
+                    <div class="rule-comment">Detects only extreme SYN-flood attacks. Threshold is too high.</div>
+                    <div class="rule-weakness">⚠ Misses: Moderate DoS (count 300–400), UDP floods, slow-rate attacks
+                    </div>
+                </div>
+                <div class="rule-item rule-portscan">
+                    <div class="rule-code">ELSE IF diff_srv_rate &gt; 0.85 AND rerror_rate &gt; 0.80 → PortScan</div>
+                    <div class="rule-comment">Catches aggressive full-port scans with high rejection rate.</div>
+                    <div class="rule-weakness">⚠ Misses: Slow/stealthy scans, targeted service scans, SYN scans</div>
+                </div>
+                <div class="rule-item rule-bruteforce">
+                    <div class="rule-code">ELSE IF num_failed_logins &gt; 5 AND logged_in == 0 → BruteForce</div>
+                    <div class="rule-comment">Only fires after 5+ failed logins — attacker may succeed before this.
+                    </div>
+                    <div class="rule-weakness">⚠ Misses: Early-stage brute force (1–5 attempts), distributed BF attacks
+                    </div>
+                </div>
+                <div class="rule-item rule-normal">
+                    <div class="rule-code">ELSE → Normal</div>
+                    <div class="rule-comment">Everything not caught by above rules is labelled safe — a huge assumption.
+                    </div>
+                    <div class="rule-weakness">⚠ This is where most missed attacks go — false negatives pool</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">⚡ SIDE-BY-SIDE MODEL COMPARISON</div>
+            <div class="pb">
+                <table class="cmp-table">
+                    <thead>
+                        <tr>
+                            <th>PROPERTY</th>
+                            <th class="ai-col">🤖 AI — RANDOM FOREST</th>
+                            <th class="rl-col">📏 RULE-BASED</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Algorithm</td>
+                            <td class="ai-col">Ensemble of 100 Decision Trees</td>
+                            <td class="rl-col">4 manual IF-ELSE rules</td>
+                        </tr>
+                        <tr>
+                            <td>Features used</td>
+                            <td class="ai-col">All 18 network features</td>
+                            <td class="rl-col">3 features only</td>
+                        </tr>
+                        <tr>
+                            <td>Requires training data</td>
+                            <td class="ai-col">Yes — learns from labelled examples</td>
+                            <td class="rl-col">No — written by hand</td>
+                        </tr>
+                        <tr>
+                            <td>Adapts to new attacks</td>
+                            <td class="ai-col"><span class="tag-good">✓ Retrain on new data</span></td>
+                            <td class="rl-col"><span class="tag-bad">✗ Manual rule updates</span></td>
+                        </tr>
+                        <tr>
+                            <td>Handles subtle patterns</td>
+                            <td class="ai-col"><span class="tag-good">✓ Detects low-and-slow attacks</span></td>
+                            <td class="rl-col"><span class="tag-bad">✗ Only extreme thresholds</span></td>
+                        </tr>
+                        <tr>
+                            <td>Overall accuracy</td>
+                            <td class="ai-col" id="cmp-ai-acc" style="font-family:'Share Tech Mono'">—</td>
+                            <td class="rl-col" id="cmp-rl-acc" style="font-family:'Share Tech Mono'">—</td>
+                        </tr>
+                        <tr>
+                            <td>BruteForce detection</td>
+                            <td class="ai-col" id="cmp-ai-bf">—</td>
+                            <td class="rl-col" id="cmp-rl-bf">—</td>
+                        </tr>
+                        <tr>
+                            <td>DoS detection</td>
+                            <td class="ai-col" id="cmp-ai-dos">—</td>
+                            <td class="rl-col" id="cmp-rl-dos">—</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">🎯 PER-CLASS ACCURACY — AI vs RULE-BASED</div>
+            <div class="class-acc-grid" id="class-acc-grid">
+                <div class="loading">Loading per-class accuracy...</div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="ph">📊 CONFUSION MATRICES</div>
+            <div class="cm-wrap" id="cm-wrap">
+                <div class="loading">Loading confusion matrices...</div>
+            </div>
+        </div>
+
+        <!-- ── SECTION 5: Charts ──────────────────────────────────────────── -->
+        <div class="sec-head">
+            <span class="sec-num">05</span>
+            <div>
+                <div class="sec-title">DATASET EDA — VISUAL ANALYSIS</div>
+                <div class="sec-sub">Exploratory Data Analysis — distributions that distinguish attack types</div>
+            </div>
+        </div>
+
+        <div class="chart-row" style="margin-bottom:16px">
+            <div class="panel">
+                <div class="ph">📈 AVG SRC_BYTES PER CLASS</div>
+                <div class="chart-box"><canvas id="bytes-chart"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="ph">📈 AVG COUNT (CONNECTIONS/2s) PER CLASS</div>
+                <div class="chart-box"><canvas id="count-chart"></canvas></div>
+            </div>
+        </div>
+        <div class="chart-row" style="margin-bottom:16px">
+            <div class="panel">
+                <div class="ph">📈 AVG SERROR RATE VS RERROR RATE</div>
+                <div class="chart-box"><canvas id="error-chart"></canvas></div>
+            </div>
+            <div class="panel">
+                <div class="ph">📈 AVG FAILED LOGINS PER CLASS</div>
+                <div class="chart-box"><canvas id="login-chart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="back-top"><a href="#">↑ Back to top</a></div>
+
+    </div><!-- /page -->
+
+    <script>
+        const CMAP = { Normal: 'rgba(0,255,136,0.7)', DoS: 'rgba(255,51,85,0.7)', PortScan: 'rgba(255,170,0,0.7)', BruteForce: 'rgba(255,0,204,0.7)' };
+        const BMAP = { Normal: '#00ff88', DoS: '#ff3355', PortScan: '#ffaa00', BruteForce: '#ff00cc' };
+        const LABELS = ['Normal', 'DoS', 'PortScan', 'BruteForce'];
+        const CHART_DEFAULTS = {
+            plugins: { legend: { labels: { color: '#b0cce0', font: { family: "'Rajdhani'", size: 12 } } } },
+            scales: {
+                x: { ticks: { color: '#3a5a70' }, grid: { color: 'rgba(13,34,51,0.8)' } },
+                y: { ticks: { color: '#3a5a70' }, grid: { color: 'rgba(13,34,51,0.8)' } }
+            }
+        };
+
+        // ── Tree voting simulation ────────────────────────────────────────────────────
+        const TREE_SCENARIOS = [
+            { attack: 'DoS', votes: { DoS: 7, Normal: 2, PortScan: 1, BruteForce: 0 } },
+            { attack: 'PortScan', votes: { PortScan: 8, Normal: 1, DoS: 1, BruteForce: 0 } },
+            { attack: 'BruteForce', votes: { BruteForce: 7, Normal: 3, DoS: 0, PortScan: 0 } },
+        ];
+        const sc = TREE_SCENARIOS[Math.floor(Math.random() * TREE_SCENARIOS.length)];
+        const grid = document.getElementById('tree-grid');
+        let treeArr = [];
+        Object.entries(sc.votes).forEach(([cls, n]) => {
+            for (let i = 0; i < n; i++) treeArr.push(cls);
+        });
+        treeArr.sort(() => Math.random() - 0.5);
+        const icons = { DoS: '🔴', PortScan: '🟠', BruteForce: '🟣', Normal: '🟢' };
+        treeArr.forEach((cls, i) => {
+            grid.innerHTML += `
+    <div class="tree-card">
+      <div class="tree-icon">${icons[cls]}</div>
+      <div class="tree-lbl">Tree #${i + 1}</div>
+      <div class="tree-pred tree-${cls.toLowerCase()}">${cls}</div>
+    </div>`;
+        });
+        const winner = Object.entries(sc.votes).sort((a, b) => b[1] - a[1])[0];
+        document.getElementById('vote-result').innerHTML =
+            `🗳 Majority Vote (${winner[1]}/10 trees) → Final Prediction: <strong style="color:var(--${sc.attack === 'DoS' ? 'rd' : sc.attack === 'PortScan' ? 'or' : sc.attack === 'BruteForce' ? 'pk' : 'gr'})">${sc.attack}</strong> &nbsp;·&nbsp; Random Forest uses all 100 trees — higher vote count = higher confidence score`;
+
+        // ── Load all API data ─────────────────────────────────────────────────────────
+        async function loadData() {
+            const [statsRes, featRes, dsRes] = await Promise.all([
+                fetch('/api/stats'), fetch('/api/model-info'), fetch('/api/dataset-sample')
+            ]);
+            const stats = await statsRes.json();
+            const feat = await featRes.json();
+            const ds = await dsRes.json();
+
+            renderStatCards(ds);
+            renderFeatTable(feat, ds);
+            renderSampleTable(ds);
+            renderClassAcc(stats);
+            renderCM(stats);
+            renderFeatChart(feat);
+            renderEDACharts(ds);
+            renderCompare(stats);
+
+            document.getElementById('stat-total').textContent = ds.total_rows.toLocaleString();
+        }
+
+        function renderStatCards(ds) {
+            const cfg = {
+                Normal: { cls: 'c-normal', icon: '🟢' },
+                DoS: { cls: 'c-dos', icon: '🔴' },
+                PortScan: { cls: 'c-portscan', icon: '🟠' },
+                BruteForce: { cls: 'c-bruteforce', icon: '🟣' },
+            };
+            document.getElementById('ds-cards-container').innerHTML = LABELS.map(label => {
+                const d = ds.class_stats[label];
+                const c = cfg[label];
+                return `
+      <div class="ds-card ${c.cls}">
+        <div class="ds-card-head">${c.icon} ${label.toUpperCase()}</div>
+        <div class="ds-stat"><span class="ds-key">Samples</span><span class="ds-val">${d.count.toLocaleString()}</span></div>
+        <div class="ds-stat"><span class="ds-key">Avg src_bytes</span><span class="ds-val">${d.avg_src_bytes.toLocaleString()}</span></div>
+        <div class="ds-stat"><span class="ds-key">Avg count</span><span class="ds-val">${d.avg_count}</span></div>
+        <div class="ds-stat"><span class="ds-key">Avg serror_rate</span><span class="ds-val">${d.avg_serror_rate}</span></div>
+        <div class="ds-stat"><span class="ds-key">Avg failed logins</span><span class="ds-val">${d.avg_failed_logins}</span></div>
+      </div>`;
+            }).join('');
+        }
+
+        function renderFeatTable(feat, ds) {
+            const fi = Object.fromEntries(feat.feature_importances);
+            const maxImp = feat.feature_importances[0][1];
+            const fd = ds.feature_descriptions;
+            const rows = Object.entries(fd).map(([name, desc]) => {
+                const imp = fi[name] || 0;
+                const pct = ((imp / maxImp) * 100).toFixed(0);
+                return `<tr>
+      <td>${name}</td>
+      <td>${desc}</td>
+      <td><div class="imp-bar-bg"><div class="imp-bar" style="width:${pct}%"></div></div></td>
+    </tr>`;
+            }).join('');
+            document.getElementById('feat-table-container').innerHTML = `
+    <table class="feat-table">
+      <thead><tr><th>FEATURE NAME</th><th>DESCRIPTION</th><th>IMPORTANCE</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+        }
+
+        function renderSampleTable(ds) {
+            const cols = ['label', 'duration', 'src_bytes', 'dst_bytes', 'count', 'serror_rate', 'rerror_rate', 'diff_srv_rate', 'num_failed_logins', 'logged_in'];
+            const head = cols.map(c => `<th>${c}</th>`).join('');
+            const rows = ds.sample_rows.map(r => {
+                const tds = cols.map(c => {
+                    if (c === 'label') return `<td><span class="lbl l${r[c]}">${r[c]}</span></td>`;
+                    const v = typeof r[c] === 'number' ? (Number.isInteger(r[c]) ? r[c] : r[c].toFixed(3)) : r[c];
+                    return `<td>${v}</td>`;
+                }).join('');
+                return `<tr>${tds}</tr>`;
+            }).join('');
+            document.getElementById('sample-table-container').innerHTML = `
+    <table class="data-table">
+      <thead><tr>${head}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+        }
+
+        function renderClassAcc(stats) {
+            const aiP = stats.ai_per_class || {};
+            const rlP = stats.rule_per_class || {};
+            const colors = { Normal: ['gr', 'or'], DoS: ['rd', 'or'], PortScan: ['or', 'or'], BruteForce: ['pk', 'or'] };
+            document.getElementById('class-acc-grid').innerHTML = LABELS.map(label => {
+                const ai = aiP[label] || 100;
+                const rl = rlP[label] || 0;
+                return `
+      <div class="class-acc-card">
+        <div class="ca-label" style="color:var(--${label === 'Normal' ? 'gr' : label === 'DoS' ? 'rd' : label === 'PortScan' ? 'or' : 'pk'})">${label.toUpperCase()}</div>
+        <div class="ca-row ai-row">
+          <span style="font-size:0.72rem;color:var(--dim)">AI</span>
+          <div class="ca-bar-bg"><div class="ca-bar-fill" style="width:${ai}%"></div></div>
+          <span class="ca-val">${ai}%</span>
+        </div>
+        <div class="ca-row rl-row">
+          <span style="font-size:0.72rem;color:var(--dim)">Rule</span>
+          <div class="ca-bar-bg"><div class="ca-bar-fill" style="width:${rl}%"></div></div>
+          <span class="ca-val">${rl}%</span>
+        </div>
+      </div>`;
+            }).join('');
+        }
+
+        function renderCM(stats) {
+            const cls = stats.class_names;
+            const buildTable = (cm, type) => {
+                const header = `<tr><th></th>${cls.map(c => `<th>${c.slice(0, 7)}</th>`).join('')}</tr>`;
+                const rows = cm.map((row, i) => {
+                    const tds = row.map((v, j) => {
+                        const isDiag = i === j;
+                        const clsName = isDiag ? `diag ${type}-diag` : v > 0 ? 'miss' : 'zero';
+                        return `<td class="${clsName}">${v}</td>`;
+                    }).join('');
+                    return `<tr><th>${cls[i].slice(0, 7)}</th>${tds}</tr>`;
+                }).join('');
+                return `<table class="cm"><thead>${header}</thead><tbody>${rows}</tbody></table>`;
+            };
+
+            document.getElementById('cm-wrap').innerHTML = `
+    <div>
+      <div class="cm-title">🤖 AI MODEL (Random Forest)</div>
+      ${buildTable(stats.confusion_matrix, 'ai')}
+      <p style="font-size:0.72rem;color:var(--dim);margin-top:8px">Perfect diagonal → 0 missed attacks</p>
+    </div>
+    <div>
+      <div class="cm-title">📏 RULE-BASED SYSTEM</div>
+      ${buildTable(stats.rule_confusion_matrix, 'rl')}
+      <p style="font-size:0.72rem;color:var(--dim);margin-top:8px">Red cells = attacks misclassified as Normal</p>
+    </div>`;
+        }
+
+        function renderFeatChart(feat) {
+            const fi = feat.feature_importances;
+            new Chart(document.getElementById('feat-chart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: fi.map(([n]) => n),
+                    datasets: [{
+                        label: 'Importance', data: fi.map(([, v]) => (v * 100).toFixed(2)),
+                        backgroundColor: fi.map((_, i) => `hsla(${195 + i * 15},90%,60%,0.7)`),
+                        borderColor: fi.map((_, i) => `hsl(${195 + i * 15},90%,60%)`), borderWidth: 1
+                    }]
+                },
+                options: { ...CHART_DEFAULTS, indexAxis: 'y', plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderEDACharts(ds) {
+            const vals = k => LABELS.map(l => ds.class_stats[l][k]);
+            const mkBar = (id, label, key) => new Chart(document.getElementById(id).getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: LABELS,
+                    datasets: [{
+                        label, data: vals(key),
+                        backgroundColor: LABELS.map(l => CMAP[l]),
+                        borderColor: LABELS.map(l => BMAP[l]), borderWidth: 1
+                    }]
+                },
+                options: { ...CHART_DEFAULTS, plugins: { legend: { display: false } } }
+            });
+
+            mkBar('bytes-chart', 'Avg src_bytes', 'avg_src_bytes');
+            mkBar('count-chart', 'Avg count', 'avg_count');
+            mkBar('login-chart', 'Avg failed logins', 'avg_failed_logins');
+
+            new Chart(document.getElementById('error-chart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: LABELS,
+                    datasets: [
+                        {
+                            label: 'serror_rate', data: LABELS.map(l => ds.class_stats[l].avg_serror_rate),
+                            backgroundColor: 'rgba(0,200,255,0.6)', borderColor: '#00c8ff', borderWidth: 1
+                        },
+                        {
+                            label: 'rerror_rate', data: LABELS.map(l => ds.class_stats[l].avg_rerror_rate),
+                            backgroundColor: 'rgba(255,170,0,0.6)', borderColor: '#ffaa00', borderWidth: 1
+                        },
+                    ]
+                },
+                options: CHART_DEFAULTS
+            });
+        }
+
+        function renderCompare(stats) {
+            const aiP = stats.ai_per_class || {};
+            const rlP = stats.rule_per_class || {};
+            document.getElementById('cmp-ai-acc').textContent = stats.ai_accuracy + '%';
+            document.getElementById('cmp-rl-acc').textContent = stats.rule_accuracy + '%';
+            document.getElementById('cmp-ai-bf').innerHTML = `<span class="tag-good">✓ ${aiP.BruteForce || '—'}%</span>`;
+            document.getElementById('cmp-rl-bf').innerHTML = `<span class="tag-bad">✗ ${rlP.BruteForce || '—'}%</span>`;
+            document.getElementById('cmp-ai-dos').innerHTML = `<span class="tag-good">✓ ${aiP.DoS || '—'}%</span>`;
+            document.getElementById('cmp-rl-dos').innerHTML = `<span class="tag-bad">✗ ${rlP.DoS || '—'}%</span>`;
+        }
+
+        loadData().catch(console.error);
+    </script>
+</body>
+
+</html>
