@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIDS — Network Intrusion Detection System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #040a0f;
+    --panel:     #070e16;
+    --border:    #0d2233;
+    --accent:    #00c8ff;
+    --green:     #00ff88;
+    --red:       #ff3355;
+    --orange:    #ffaa00;
+    --pink:      #ff00cc;
+    --text:      #b0cce0;
+    --dim:       #3a5a70;
+    --glow:      0 0 18px rgba(0,200,255,0.25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,200,255,0.012) 3px,
+      rgba(0,200,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Header ─────────────────────────────────────────── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, #040a0f 0%, #061420 100%);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.35rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: var(--glow);
+  }
+  .logo span { color: var(--green); }
+  .status-bar { display: flex; gap: 20px; align-items: center; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-family:'Share Tech Mono'; font-size:0.78rem; color: var(--green); }
+  #clock { font-family:'Share Tech Mono'; font-size:0.85rem; color: var(--dim); }
+
+  /* ── Layout ─────────────────────────────────────────── */
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 20px; max-width: 1600px; margin: 0 auto; }
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── Panel ───────────────────────────────────────────── */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,200,255,0.03);
+  }
+  .panel-title {
+    font-family: 'Share Tech Mono';
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .badge {
+    font-family: 'Share Tech Mono';
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+  }
+  .badge-ai   { color: var(--accent); border-color: var(--accent); }
+  .badge-rule { color: var(--orange); border-color: var(--orange); }
+
+  /* ── Accuracy Cards ──────────────────────────────────── */
+  .accuracy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+  .acc-card {
+    text-align: center; padding: 20px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    position: relative; overflow: hidden;
+  }
+  .acc-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .acc-card.ai::before  { background: var(--accent); box-shadow: var(--glow); }
+  .acc-card.rule::before { background: var(--orange); }
+  .acc-label { font-size: 0.7rem; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; margin-bottom: 8px; }
+  .acc-value { font-family: 'Orbitron'; font-size: 2.5rem; font-weight: 900; }
+  .acc-card.ai   .acc-value { color: var(--accent); text-shadow: var(--glow); }
+  .acc-card.rule .acc-value { color: var(--orange); }
+  .acc-sub { font-size: 0.75rem; color: var(--dim); margin-top: 4px; }
+  .acc-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; }
+  .acc-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+  .acc-card.ai   .acc-fill { background: var(--accent); box-shadow: var(--glow); }
+  .acc-card.rule .acc-fill { background: var(--orange); }
+
+  /* ── Live Feed ───────────────────────────────────────── */
+  #live-feed { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .packet-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 1fr 55px 55px 90px 90px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Share Tech Mono';
+    font-size: 0.72rem;
+    background: rgba(255,255,255,0.01);
+    animation: slideIn 0.3s ease;
+    border-left: 3px solid var(--dim);
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateX(-10px); } to { opacity:1; transform: none; } }
+  .packet-row.threat-DoS         { border-left-color: var(--red); background: rgba(255,51,85,0.04); }
+  .packet-row.threat-PortScan    { border-left-color: var(--orange); background: rgba(255,170,0,0.04); }
+  .packet-row.threat-BruteForce  { border-left-color: var(--pink); background: rgba(255,0,204,0.04); }
+  .packet-row.threat-Normal      { border-left-color: var(--green); }
+  .pkt-time { color: var(--dim); }
+  .pkt-ip   { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pkt-proto { color: var(--accent); }
+  .pkt-port  { color: var(--dim); }
+  .label-badge {
+    display: inline-block; padding: 2px 7px; border-radius: 3px;
+    font-size: 0.65rem; font-weight: bold; text-align: center;
+    white-space: nowrap;
+  }
+  .lbl-Normal     { background: rgba(0,255,136,0.15); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+  .lbl-DoS        { background: rgba(255,51,85,0.15); color: var(--red); border: 1px solid rgba(255,51,85,0.3); }
+  .lbl-PortScan   { background: rgba(255,170,0,0.15); color: var(--orange); border: 1px solid rgba(255,170,0,0.3); }
+  .lbl-BruteForce { background: rgba(255,0,204,0.15); color: var(--pink); border: 1px solid rgba(255,0,204,0.3); }
+  .wrong { opacity: 0.5; text-decoration: line-through; }
+  .pkt-conf { color: var(--dim); }
+
+  /* ── Alert Banner ────────────────────────────────────── */
+  #alert-banner {
+    display: none;
+    padding: 10px 20px;
+    font-family: 'Share Tech Mono';
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    animation: flash 0.4s ease;
+    border-radius: 4px;
+    margin: 0 16px 12px;
+  }
+  @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  #alert-banner.dos       { background: rgba(255,51,85,0.15); border: 1px solid var(--red); color: var(--red); }
+  #alert-banner.portscan  { background: rgba(255,170,0,0.15); border: 1px solid var(--orange); color: var(--orange); }
+  #alert-banner.bruteforce{ background: rgba(255,0,204,0.15); border: 1px solid var(--pink); color: var(--pink); }
+
+  /* ── Counters ────────────────────────────────────────── */
+  .counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px 16px; }
+  .counter-card { text-align: center; padding: 12px 6px; border: 1px solid var(--border); border-radius: 5px; }
+  .counter-num { font-family: 'Orbitron'; font-size: 1.6rem; font-weight: 700; }
+  .counter-lbl { font-size: 0.65rem; letter-spacing: 1.5px; color: var(--dim); text-transform: uppercase; margin-top: 3px; }
+  .counter-card.normal    .counter-num { color: var(--green); }
+  .counter-card.dos       .counter-num { color: var(--red); }
+  .counter-card.portscan  .counter-num { color: var(--orange); }
+  .counter-card.bruteforce .counter-num { color: var(--pink); }
+
+  /* ── Charts ──────────────────────────────────────────── */
+  .chart-wrap { padding: 16px; height: 220px; position: relative; }
+  .chart-wrap canvas { max-height: 190px; }
+
+  /* ── Feature importances ─────────────────────────────── */
+  #feat-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .feat-row { display: flex; align-items: center; gap: 10px; }
+  .feat-name { font-family: 'Share Tech Mono'; font-size: 0.7rem; width: 160px; color: var(--text); }
+  .feat-bar-bg { flex: 1; height: 6px; background: var(--border); border-radius: 3px; }
+  .feat-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.8s ease; }
+  .feat-val { font-family: 'Share Tech Mono'; font-size: 0.65rem; color: var(--dim); width: 40px; text-align: right; }
+
+  /* ── Controls ────────────────────────────────────────── */
+  .controls { display: flex; gap: 10px; align-items: center; padding: 14px 20px; background: var(--panel); border-top: 1px solid var(--border); }
+  .btn {
+    font-family: 'Share Tech Mono'; font-size: 0.75rem; letter-spacing: 1.5px;
+    padding: 8px 20px; border-radius: 4px; border: 1px solid;
+    cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+    background: transparent;
+  }
+  .btn-start { border-color: var(--green); color: var(--green); }
+  .btn-start:hover, .btn-start.active { background: var(--green); color: var(--bg); box-shadow: 0 0 14px rgba(0,255,136,0.4); }
+  .btn-stop  { border-color: var(--red); color: var(--red); }
+  .btn-stop:hover  { background: var(--red); color: #fff; }
+  .speed-label { font-family: 'Share Tech Mono'; font-size: 0.7rem; color: var(--dim); }
+  select.speed-sel {
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: 'Share Tech Mono'; font-size: 0.75rem; padding: 6px 10px; border-radius: 4px;
+  }
+  .packets-total { font-family: 'Share Tech Mono'; font-size: 0.72rem; color: var(--dim); margin-left: auto; }
+
+  /* ── Comparison section ──────────────────────────────── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .compare-col { padding: 14px 16px; }
+  .compare-col:first-child { border-right: 1px solid var(--border); }
+  .compare-col h3 { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .compare-col.ai h3 { color: var(--accent); }
+  .compare-col.rule h3 { color: var(--orange); }
+  .cmp-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.8rem; }
+  .cmp-key { color: var(--dim); }
+  .cmp-val { color: var(--text); font-weight: 600; }
+
+  /* ── Session stats ───────────────────────────────────── */
+  #session-correct-ai, #session-correct-rule {
+    font-family: 'Orbitron'; font-size: 0.9rem;
+  }
+  #session-correct-ai   { color: var(--accent); }
+  #session-correct-rule { color: var(--orange); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">N<span>I</span>DS &nbsp;·&nbsp; <span style="font-size:0.75rem; font-family:'Share Tech Mono'; color:var(--dim); letter-spacing:1px;">NETWORK INTRUSION DETECTION</span></div>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <div class="status-text">MONITORING ACTIVE</div>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Accuracy Comparison -->
+  <div class="panel full-width">
+    <div class="panel-header">
+      <span class="panel-title">⚡ Model Performance — AI vs Rule-Based</span>
+      <span style="font-family:'Share Tech Mono';font-size:0.65rem;color:var(--dim);">NSL-KDD Dataset · Random Forest</span>
+    </div>
+    <div class="accuracy-grid">
+      <div class="acc-card ai">
+        <div class="acc-label">🤖 AI Model (Random Forest)</div>
+        <div class="acc-value" id="ai-acc">—</div>
+        <div class="acc-sub">Test Set Accuracy</div>
+        <div class="acc-bar"><div class="acc-fill" id="ai-acc-bar" style="width:0%"></div></div>
+      </div>
+      <div class="acc-card rule">
+        <div class="acc-label">📏 Rule-Based (No AI)</div>
+        <div class="acc-value" id="rule-acc">—</div>
+        <div class="acc-sub">Threshold Detection</div>
+        <div class="acc-bar"><div class="acc-fill" id="rule-acc-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Feed -->
+  <div class="panel" style="grid-column: 1 / -1;">
+    <div class="panel-header">
+      <span class="panel-title">📡 Live Packet Analysis</span>
+      <div style="display:flex;gap:10px;">
+        <span class="badge badge-ai">AI</span>
+        <span class="badge badge-rule">RULE</span>
+      </div>
+    </div>
+    <div id="alert-banner"></div>
+    <div style="display:grid;grid-template-columns:70px 1fr 1fr 55px 55px 90px 90px;gap:8px;padding:6px 24px;font-family:'Share Tech Mono';font-size:0.62rem;color:var(--dim);border-bottom:1px solid var(--border);">
+      <span>TIME</span><span>SRC IP</span><span>DST IP</span><span>PORT</span><span>PROTO</span>
+      <span style="color:var(--accent);">AI DETECT</span>
+      <span style="color:var(--orange);">RULE DETECT</span>
+    </div>
+    <div id="live-feed"></div>
+  </div>
+
+  <!-- Traffic Counters -->
+  <div class="panel full-width">
+    <div class="panel-header"><span class="panel-title">📊 Session Traffic Counters</span></div>
+    <div class="counters">
+      <div class="counter-card normal">    <div class="counter-num" id="cnt-normal">0</div><div class="counter-lbl">Normal</div></div>
+      <div class="counter-card dos">       <div class="counter-num" id="cnt-dos">0</div><div class="counter-lbl">DoS</div></div>
+      <div class="counter-card portscan">  <div class="counter-num" id="cnt-portscan">0</div><div class="counter-lbl">Port Scan</div></div>
+      <div class="counter-card bruteforce"><div class="counter-num" id="cnt-bruteforce">0</div><div class="counter-lbl">Brute Force</div></div>
+    </div>
+  </div>
+
+  <!-- Traffic Chart -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">📈 Live Traffic Distribution (AI)</span></div>
+    <div class="chart-wrap"><canvas id="donut-chart"></canvas></div>
+  </div>
+
+  <!-- Feature Importances -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">🔬 Top Feature Importances (Random Forest)</span></div>
+    <div id="feat-list"><p style="padding:16px;color:var(--dim);font-size:0.8rem;">Loading...</p></div>
+  </div>
+
+  <!-- AI vs Rule Comparison Detail -->
+  <div class="panel full-width">
+    <div class="panel-header"><span class="panel-title">⚖️ AI vs Rule-Based — Session Comparison</span></div>
+    <div class="compare-grid">
+      <div class="compare-col ai">
+        <h3>🤖 AI Detection (Random Forest)</h3>
+        <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Random Forest (100 trees)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">All 17 network features</span></div>
+        <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">NSL-KDD (6400 samples)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Detection Types</span><span class="cmp-val">DoS, PortScan, BruteForce, Normal</span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span id="session-correct-ai">0</span> / <span id="session-total-ai">0</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span id="session-acc-ai">—</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Advantage</span><span class="cmp-val" style="color:var(--green)">Learns patterns, handles edge cases</span></div>
+      </div>
+      <div class="compare-col rule">
+        <h3>📏 Rule-Based (No AI)</h3>
+        <div class="cmp-item"><span class="cmp-key">Algorithm</span><span class="cmp-val">Threshold / IF-ELSE Rules</span></div>
+        <div class="cmp-item"><span class="cmp-key">Features Used</span><span class="cmp-val">3 key features only</span></div>
+        <div class="cmp-item"><span class="cmp-key">Training Data</span><span class="cmp-val">None (manual rules)</span></div>
+        <div class="cmp-item"><span class="cmp-key">Detection Types</span><span class="cmp-val">DoS, PortScan, BruteForce, Normal</span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Correct</span><span class="cmp-val"><span id="session-correct-rule">0</span> / <span id="session-total-rule">0</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Session Accuracy</span><span class="cmp-val"><span id="session-acc-rule">—</span></span></div>
+        <div class="cmp-item"><span class="cmp-key">Limitation</span><span class="cmp-val" style="color:var(--red)">Misses subtle attacks, many false positives</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn btn-start active" id="btn-start" onclick="startSim()">▶ Start Simulation</button>
+  <button class="btn btn-stop" id="btn-stop" onclick="stopSim()">■ Stop</button>
+  <span class="speed-label">SPEED:</span>
+  <select class="speed-sel" id="speed-sel">
+    <option value="2000">Slow (2s)</option>
+    <option value="1200" selected>Normal (1.2s)</option>
+    <option value="600">Fast (0.6s)</option>
+  </select>
+  <span class="packets-total">Packets Analysed: <span id="pkt-count" style="color:var(--accent);font-family:'Share Tech Mono'">0</span></span>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let simTimer = null;
+let pktCount = 0;
+let counters = { Normal: 0, DoS: 0, PortScan: 0, BruteForce: 0 };
+let sessionAI   = { correct: 0, total: 0 };
+let sessionRule = { correct: 0, total: 0 };
+const MAX_ROWS  = 12;
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+}, 1000);
+
+// ── Donut chart ───────────────────────────────────────────────────────────────
+const donutCtx = document.getElementById('donut-chart').getContext('2d');
+const donutChart = new Chart(donutCtx, {
+  type: 'doughnut',
+  data: {
+    labels: ['Normal', 'DoS', 'PortScan', 'BruteForce'],
+    datasets: [{
+      data: [1, 0, 0, 0],
+      backgroundColor: ['rgba(0,255,136,0.7)','rgba(255,51,85,0.7)','rgba(255,170,0,0.7)','rgba(255,0,204,0.7)'],
+      borderColor: ['#00ff88','#ff3355','#ffaa00','#ff00cc'],
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    plugins: { legend: { labels: { color: '#b0cce0', font: { family: "'Rajdhani'", size: 12 } } } },
+    cutout: '65%',
+    animation: { duration: 400 }
+  }
+});
+
+// ── Load static stats ─────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r  = await fetch('/api/stats');
+    const d  = await r.json();
+    document.getElementById('ai-acc').textContent   = d.ai_accuracy + '%';
+    document.getElementById('rule-acc').textContent = d.rule_accuracy + '%';
+    document.getElementById('ai-acc-bar').style.width   = d.ai_accuracy + '%';
+    document.getElementById('rule-acc-bar').style.width = d.rule_accuracy + '%';
+  } catch(e) { console.warn('Stats load failed', e); }
+}
+
+async function loadFeatures() {
+  try {
+    const r = await fetch('/api/model-info');
+    const d = await r.json();
+    const list = document.getElementById('feat-list');
+    list.innerHTML = d.feature_importances.map(([name, val]) => `
+      <div class="feat-row">
+        <span class="feat-name">${name}</span>
+        <div class="feat-bar-bg"><div class="feat-bar-fill" style="width:${(val*100/d.feature_importances[0][1]).toFixed(1)}%"></div></div>
+        <span class="feat-val">${(val*100).toFixed(1)}%</span>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ── Simulate one packet ───────────────────────────────────────────────────────
+async function fetchPacket() {
+  try {
+    const r   = await fetch('/api/simulate');
+    const pkt = await r.json();
+    renderPacket(pkt);
+    updateCounters(pkt.ai.label);
+    updateSessionStats(pkt);
+    showAlert(pkt.ai.label);
+    pktCount++;
+    document.getElementById('pkt-count').textContent = pktCount;
+  } catch(e) { console.warn(e); }
+}
+
+function renderPacket(pkt) {
+  const feed = document.getElementById('live-feed');
+  const aiClass   = `lbl-${pkt.ai.label}`;
+  const ruleClass = `lbl-${pkt.rule.label}`;
+  const rowClass  = `threat-${pkt.ai.label}`;
+  const conf      = pkt.ai.confidence.toFixed(0) + '%';
+
+  const row = document.createElement('div');
+  row.className = `packet-row ${rowClass}`;
+  row.innerHTML = `
+    <span class="pkt-time">${pkt.timestamp}</span>
+    <span class="pkt-ip">${pkt.src_ip}</span>
+    <span class="pkt-ip">${pkt.dst_ip}</span>
+    <span class="pkt-port">${pkt.port}</span>
+    <span class="pkt-proto">${pkt.protocol}</span>
+    <span class="label-badge ${aiClass}">${pkt.ai.label} <small>${conf}</small></span>
+    <span class="label-badge ${ruleClass} ${pkt.rule.correct ? '' : 'wrong'}">${pkt.rule.label}</span>
+  `;
+  feed.insertBefore(row, feed.firstChild);
+
+  // Keep max rows
+  while (feed.children.length > MAX_ROWS) feed.removeChild(feed.lastChild);
+}
+
+function updateCounters(label) {
+  counters[label]++;
+  document.getElementById('cnt-normal').textContent    = counters.Normal;
+  document.getElementById('cnt-dos').textContent       = counters.DoS;
+  document.getElementById('cnt-portscan').textContent  = counters.PortScan;
+  document.getElementById('cnt-bruteforce').textContent= counters.BruteForce;
+
+  donutChart.data.datasets[0].data = [
+    counters.Normal, counters.DoS, counters.PortScan, counters.BruteForce
+  ];
+  donutChart.update();
+}
+
+function updateSessionStats(pkt) {
+  sessionAI.total++;
+  sessionRule.total++;
+  if (pkt.ai.correct)   sessionAI.correct++;
+  if (pkt.rule.correct) sessionRule.correct++;
+
+  document.getElementById('session-correct-ai').textContent   = sessionAI.correct;
+  document.getElementById('session-total-ai').textContent     = sessionAI.total;
+  document.getElementById('session-correct-rule').textContent = sessionRule.correct;
+  document.getElementById('session-total-rule').textContent   = sessionRule.total;
+
+  const accAI   = ((sessionAI.correct   / sessionAI.total)   * 100).toFixed(1);
+  const accRule = ((sessionRule.correct / sessionRule.total) * 100).toFixed(1);
+  document.getElementById('session-acc-ai').textContent   = accAI + '%';
+  document.getElementById('session-acc-rule').textContent = accRule + '%';
+}
+
+let alertTimer = null;
+function showAlert(label) {
+  if (label === 'Normal') { return; }
+  const banner = document.getElementById('alert-banner');
+  const msgs = {
+    DoS:        '⚠ ALERT — DoS ATTACK DETECTED: High-volume flood traffic from external source!',
+    PortScan:   '⚠ ALERT — PORT SCAN DETECTED: Attacker mapping network topology!',
+    BruteForce: '⚠ ALERT — BRUTE FORCE DETECTED: Repeated login failures on target host!'
+  };
+  banner.textContent = msgs[label] || '';
+  banner.className   = label.toLowerCase();
+  banner.style.display = 'block';
+  clearTimeout(alertTimer);
+  alertTimer = setTimeout(() => { banner.style.display = 'none'; }, 3500);
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────────
+function startSim() {
+  if (simTimer) return;
+  const speed = parseInt(document.getElementById('speed-sel').value);
+  fetchPacket();
+  simTimer = setInterval(fetchPacket, speed);
+  document.getElementById('btn-start').classList.add('active');
+}
+
+function stopSim() {
+  clearInterval(simTimer);
+  simTimer = null;
+  document.getElementById('btn-start').classList.remove('active');
+}
+
+document.getElementById('speed-sel').addEventListener('change', () => {
+  if (simTimer) { stopSim(); startSim(); }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadStats();
+loadFeatures();
+startSim();
+</script>
+</body>
+</html>
